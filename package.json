@@ -1,0 +1,28 @@
+{
+  "name": "umc-9th-nodejs-hyuji",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "UMC 테스트 프로젝트",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "nodemon --exec node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UMC-CAU/umc-9th-nodejs-hyuji.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/UMC-CAU/umc-9th-nodejs-hyuji/issues"
+  },
+  "homepage": "https://github.com/UMC-CAU/umc-9th-nodejs-hyuji#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

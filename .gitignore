@@ -1,0 +1,50 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+
+# Build output
+dist/
+build/
+out/
+.tmp/
+temp/
+cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+*.log.*
+*.out
+*.pid
+*.seed
+
+# IDE & editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# OS files
+Thumbs.db
+
+# Optional npm cache directory
+.npm/
