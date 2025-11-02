@@ -1,0 +1,30 @@
+import {
+  insertReview,
+  insertReviewImages,
+  getReviewWithImages,
+} from "../repositories/review.repository.js";
+import { responseFromReview } from "../dtos/review.dto.js";
+
+// 리뷰 생성
+export const createReviewByUserMissionId = async (userMissionId, reviewDto) => {
+  if (!userMissionId) throw new Error("userMissionId가 필요합니다.");
+  if (!reviewDto.content) throw new Error("리뷰 내용(body)이 필요합니다.");
+  if (reviewDto.score == null || Number.isNaN(reviewDto.score))
+    throw new Error("score(숫자)가 필요합니다.");
+
+  // 리뷰 삽입
+  const reviewId = await insertReview({
+    body: reviewDto.content,
+    score: reviewDto.score,
+    userMissionId,
+  });
+
+  // 이미지 삽입
+  await insertReviewImages(reviewId, reviewDto.images);
+
+  // 최종 리뷰 조회
+  const data = await getReviewWithImages(reviewId);
+
+  // 출력 DTO 변환
+  return responseFromReview({ review: data.review, images: data.images });
+};
