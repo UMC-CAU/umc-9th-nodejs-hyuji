@@ -1,0 +1,63 @@
+import * as missionService from "../services/mission.service.js";
+
+export const createMissionForStore = async (req, res) => {
+  const storeId = Number(req.params.storeId);
+
+  try {
+    const created = await missionService.createMissionForStore(storeId, bodyToMission(req.body));
+    return res.status(201).json(created);
+  } catch (error) {
+    console.error(error);
+
+    const msg = {
+      STORE_ID_REQUIRED: "storeId가 필요합니다.",
+      TITLE_REQUIRED: "미션 제목(title)이 필요합니다.",
+      BODY_REQUIRED: "미션 설명(body)이 필요합니다.",
+    }[error.message];
+
+    return res
+      .status(msg ? 400 : 500)
+      .json({ message: msg ?? "가게 미션 추가 중 오류가 발생했습니다." });
+  }
+};
+
+
+export const assignMission = async (req, res) => {
+  const missionId = Number(req.params.missionId);
+  const userId = req.user?.id ?? req.body.userId ?? 1;
+  const { storeId } = req.body;
+
+  try {
+    const result = await missionService.assignMission({ userId, missionId, storeId });
+    return res.status(201).json(result);
+  } catch (error) {
+    console.error(error);
+    const map = {
+      MISSION_NOT_FOUND: [404, "존재하지 않는 미션입니다."],
+      STORE_MISMATCH: [409, "이 미션은 해당 매장과 일치하지 않습니다."],
+      ALREADY_ASSIGNED: [409, "이미 할당된 미션입니다."],
+    };
+    const [code, msg] = map[error.message] ?? [500, "미션 할당 중 오류가 발생했습니다."];
+    return res.status(code).json({ message: msg });
+  }
+};
+
+
+export const startUserMission = async (req, res) => {
+  const userMissionId = Number(req.params.userMissionId);
+  const userId = req.user?.id ?? req.body.userId ?? 1;
+
+  try {
+    const result = await missionService.startUserMission({ userMissionId, userId });
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    const map = {
+      NOT_FOUND: [404, "존재하지 않는 유저 미션입니다."],
+      ALREADY_DONE: [409, "이미 완료된 미션입니다."],
+      INVALID_STATUS: [409, "시작할 수 없는 상태의 미션입니다."],
+    };
+    const [code, msg] = map[error.message] ?? [500, "미션 시작 중 오류가 발생했습니다."];
+    return res.status(code).json({ message: msg });
+  }
+};
