@@ -3,7 +3,8 @@ import {
   insertReview,
   insertReviewImages,
   getReviewWithImages,
-  getAllStoreReviews
+  getAllStoreReviews,
+  getAllUserReviews 
 } from "../repositories/review.repository.js";
 
 // 리뷰 생성
@@ -32,5 +33,12 @@ export const createReviewByUserMissionId = async (userMissionId, reviewDto) => {
 
 export const listStoreReviews = async (storeId, cursor = 0) => {
   const reviews = await getAllStoreReviews(storeId, cursor);
+  return responseFromReviews(reviews);
+};
+
+
+// 내 리뷰 목록
+export const listUserReviews = async (userId, cursor = 0) => {
+  const reviews = await getAllUserReviews(userId, cursor);
   return responseFromReviews(reviews);
 };

@@ -13,7 +13,7 @@ export const insertReview = async ({ body, score, userMissionId }) => {
 
   const created = await prisma.review.create({
     data: { 
-      body: body,        // 명시적으로 body 필드 추가
+      body: body,       
       score: score,
       userMissionId: userMissionId 
     }
@@ -88,6 +88,38 @@ export const getAllStoreReviews = async (storeId, cursor) => {
       userMission: { 
         mission: { storeId } 
       },
+      reviewId: { gt: cursor }
+    },
+    orderBy: { reviewId: "asc" },
+    take: 5,
+  });
+};
+
+// 내 리뷰 목록
+export const getAllUserReviews = async (userId, cursor) => {
+  return await prisma.review.findMany({
+    select: {
+      reviewId: true,
+      body: true,
+      userMissionId: true,
+      createdAt: true,
+      updatedAt: true,
+      userMission: {
+        select: {
+          userId: true,
+          user: { select: { userId: true, nickname: true, name: true } },
+          mission: {
+            select: {
+              missionId: true,
+              storeId: true,
+              store: { select: { storeId: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+    where: { 
+      userMission: { userId },  
       reviewId: { gt: cursor }
     },
     orderBy: { reviewId: "asc" },
