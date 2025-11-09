@@ -2,8 +2,9 @@ import {
   insertReview,
   insertReviewImages,
   getReviewWithImages,
+  getAllStoreReviews
 } from "../repositories/review.repository.js";
-import { responseFromReview } from "../dtos/review.dto.js";
+import { responseFromReview, responseFromReviews } from "../dtos/review.dto.js";
 
 // 리뷰 생성
 export const createReviewByUserMissionId = async (userMissionId, reviewDto) => {
@@ -27,4 +28,9 @@ export const createReviewByUserMissionId = async (userMissionId, reviewDto) => {
 
   // 출력 DTO 변환
   return responseFromReview({ review: data.review, images: data.images });
+};
+
+export const listStoreReviews = async (storeId, cursor = 0) => {
+  const reviews = await getAllStoreReviews(storeId, cursor);
+  return responseFromReviews(reviews);
 };

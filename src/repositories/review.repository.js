@@ -1,4 +1,4 @@
-import { pool } from "../db.config.js";
+import { pool, prisma } from "../db.config.js";
 
 export const insertReview = async ({ body, score, userMissionId }) => {
   const conn = await pool.getConnection();
@@ -56,3 +56,34 @@ export const getReviewWithImages = async (reviewId) => {
     conn.release();
   }
 };
+
+export const getAllStoreReviews = async (storeId, cursor) => {
+  const reviews = await prisma.review.findMany({
+    select: {
+      reviewId: true,
+      body: true,
+      userMissionId: true,
+      createdAt: true,
+      updatedAt: true,
+      userMission: {
+        select: {
+          userId: true,
+          user: {select: { userId: true, nickname: true, name: true } },
+          mission: {
+            select: {
+              missionId: true,
+              storeId: true,
+              store: { select: { storeId: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+    where: { userMission: { mission: { storeId: storeId } }, 
+    reviewId: { gt: cursor } },
+    orderBy: { reviewId: "asc" },
+    take: 5,
+  });
+
+  return reviews;
+}

@@ -19,3 +19,12 @@ export const responseFromReview = ({ review = null, images = [] } = {}) => {
     updatedAt: review.updated_at ?? undefined,
   };
 };
+
+export const responseFromReviews = (reviews) => {
+  return {
+    data: reviews,
+    pagination: {
+      cursor: reviews.length ? reviews[reviews.length - 1].reviewId : null,
+    },
+  };
+};
