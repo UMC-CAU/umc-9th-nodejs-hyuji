@@ -34,7 +34,7 @@ export const addUser = async (data) => {
 export const getUser = async (userId) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { userId: BigInt(userId) },
+      where: { userId },
       select: {
         userId: true,
         email: true,
@@ -64,8 +64,8 @@ export const setPreference = async (userId, foodTypeId) => {
   try {
     await prisma.preferredFoodType.create({
       data: {
-        user:     { connect: { userId: BigInt(userId) } },
-        foodType: { connect: { foodTypeId: BigInt(foodTypeId) } },
+        userId,
+        foodTypeId,
       },
     });
   } catch (err) {
@@ -77,7 +77,7 @@ export const setPreference = async (userId, foodTypeId) => {
 export const getUserPreferencesByUserId = async (userId) => {
   try {
     const rows = await prisma.preferredFoodType.findMany({
-      where: { userId: BigInt(userId) },
+      where: { userId },
       include: {
         foodType: { select: { name: true } },
       },
@@ -85,10 +85,10 @@ export const getUserPreferencesByUserId = async (userId) => {
     });
 
     return rows.map((r) => ({
-      id: r.preferedFoodTypeId,     
-      user_id: r.userId,           
-      food_type_id: r.foodTypeId,  
-      food_type_name: r.foodType?.name ?? null,
+      id: r.preferredFoodTypeId,     
+      userId: r.userId,           
+      foodTypeId: r.foodTypeId,  
+      foodTypeName: r.foodType?.name ?? null,
     }));
   } catch (err) {
     throw new Error(`선호 카테고리 조회 중 오류 발생: ${err.message}`);

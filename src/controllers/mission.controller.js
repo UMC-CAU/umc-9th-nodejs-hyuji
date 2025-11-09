@@ -1,23 +1,15 @@
 import * as missionService from "../services/mission.service.js";
+import { bodyToMission } from "../dtos/mission.dto.js"; // 추가된 import
 
 export const createMissionForStore = async (req, res) => {
-  const storeId = Number(req.params.storeId);
-
   try {
+    const storeId = parseInt(req.params.storeId);
+    if (!storeId) return res.status(400).json({ message: "storeId path param required." });
+
     const created = await missionService.createMissionForStore(storeId, bodyToMission(req.body));
     return res.status(201).json(created);
-  } catch (error) {
-    console.error(error);
-
-    const msg = {
-      STORE_ID_REQUIRED: "storeId가 필요합니다.",
-      TITLE_REQUIRED: "미션 제목(title)이 필요합니다.",
-      BODY_REQUIRED: "미션 설명(body)이 필요합니다.",
-    }[error.message];
-
-    return res
-      .status(msg ? 400 : 500)
-      .json({ message: msg ?? "가게 미션 추가 중 오류가 발생했습니다." });
+  } catch (err) {
+    return res.status(400).json({ message: `가게 미션 추가 중 오류가 발생했습니다: ${err.message}` });
   }
 };
 

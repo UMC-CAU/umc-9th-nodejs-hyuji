@@ -17,7 +17,7 @@ export const bodyToUser = (body) => {
 export const responseFromUser = ({ user, preferences } = {}) => {
   const preferFoods = Array.isArray(preferences)
     ? preferences
-        .map((p) => p?.foodCategory?.name ?? p?.food_type_name ?? null)
+        .map((p) => p?.foodType?.name ?? p?.foodTypeName ?? null)
         .filter(Boolean)
     : [];
 

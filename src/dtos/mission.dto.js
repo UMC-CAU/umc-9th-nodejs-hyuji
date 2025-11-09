@@ -21,15 +21,15 @@ export const responseFromMission = (mission = {}) => {
   if (!mission) return null;
 
   return {
-    id: mission.mission_id,
-    storeId: mission.store_id,
+    id: mission.missionId,
+    storeId: mission.storeId,
     title: mission.title,
     body: mission.body,
-    createdAt: mission.created_at
-      ? new Date(mission.created_at).toISOString()
+    createdAt: mission.createdAt
+      ? new Date(mission.createdAt).toISOString()
       : null,
-    updatedAt: mission.updated_at
-      ? new Date(mission.updated_at).toISOString()
+    updatedAt: mission.updatedAt
+      ? new Date(mission.updatedAt).toISOString()
       : null,
   };
 };

@@ -1,64 +1,58 @@
-import { pool, prisma } from "../db.config.js";
+import { prisma } from "../db.config.js";
 
 export const insertReview = async ({ body, score, userMissionId }) => {
-  const conn = await pool.getConnection();
-  try {
-    // 중복 검사: 완료된 미션당 리뷰 하나 unique 제약
-    const [exist] = await conn.query(
-      `SELECT review_id FROM review WHERE user_mission_id = ? LIMIT 1;`,
-      [userMissionId]
-    );
-    if (exist.length) {
-      const err = new Error("이미 해당 userMission에 대한 리뷰가 존재합니다.");
-      err.code = "REVIEW_EXISTS";
-      throw err;
-    }
-
-    const [result] = await conn.query(
-      `INSERT INTO review (body, score, user_mission_id) VALUES (?, ?, ?);`,
-      [body, score, userMissionId]
-    );
-    return result.insertId;
-  } finally {
-    conn.release();
+  const exist = await prisma.review.findFirst({
+    where: { userMissionId }
+  });
+  
+  if (exist) {
+    const err = new Error("이미 해당 userMission에 대한 리뷰가 존재합니다.");
+    err.code = "REVIEW_EXISTS";
+    throw err;
   }
+
+  const created = await prisma.review.create({
+    data: { 
+      body: body,        // 명시적으로 body 필드 추가
+      score: score,
+      userMissionId: userMissionId 
+    }
+  });
+  return created.reviewId;
 };
 
 export const insertReviewImages = async (reviewId, imageUrls = []) => {
   if (!Array.isArray(imageUrls) || imageUrls.length === 0) return [];
 
-  const conn = await pool.getConnection();
-  try {
-    const values = imageUrls.map((url) => [url, reviewId]); 
-    await conn.query(
-      `INSERT INTO review_image (picture_url, review_id) VALUES ?;`,
-      [values]
-    );
-    const [rows] = await conn.query(
-      `SELECT review_image_id, picture_url FROM review_image WHERE review_id = ? ORDER BY review_image_id ASC;`,
-      [reviewId]
-    );
-    return rows;
-  } finally {
-    conn.release();
-  }
+  await prisma.reviewImage.createMany({
+    data: imageUrls.map(url => ({
+      pictureUrl: url,
+      reviewId
+    }))
+  });
+
+  return await prisma.reviewImage.findMany({
+    where: { reviewId },
+    orderBy: { reviewImageId: 'asc' }
+  });
 };
 
 export const getReviewWithImages = async (reviewId) => {
-  const conn = await pool.getConnection();
-  try {
-    const [rRows] = await conn.query(`SELECT * FROM review WHERE review_id = ?;`, [reviewId]);
-    const review = rRows[0] ?? null;
-    if (!review) return null;
-    const [images] = await conn.query(`SELECT review_image_id, picture_url FROM review_image WHERE review_id = ?;`, [reviewId]);
-    return { review, images };
-  } finally {
-    conn.release();
-  }
+  const review = await prisma.review.findUnique({
+    where: { reviewId }
+  });
+  
+  if (!review) return null;
+
+  const images = await prisma.reviewImage.findMany({
+    where: { reviewId }
+  });
+
+  return { review, images };
 };
 
 export const getAllStoreReviews = async (storeId, cursor) => {
-  const reviews = await prisma.review.findMany({
+  return await prisma.review.findMany({
     select: {
       reviewId: true,
       body: true,
@@ -68,22 +62,35 @@ export const getAllStoreReviews = async (storeId, cursor) => {
       userMission: {
         select: {
           userId: true,
-          user: {select: { userId: true, nickname: true, name: true } },
+          user: {
+            select: { 
+              userId: true, 
+              nickname: true, 
+              name: true 
+            }
+          },
           mission: {
             select: {
               missionId: true,
               storeId: true,
-              store: { select: { storeId: true, name: true } },
+              store: { 
+                select: { 
+                  storeId: true, 
+                  name: true 
+                }
+              },
             },
           },
         },
       },
     },
-    where: { userMission: { mission: { storeId: storeId } }, 
-    reviewId: { gt: cursor } },
+    where: { 
+      userMission: { 
+        mission: { storeId } 
+      },
+      reviewId: { gt: cursor }
+    },
     orderBy: { reviewId: "asc" },
     take: 5,
   });
-
-  return reviews;
-}
+};
