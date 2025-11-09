@@ -148,3 +148,22 @@ dist
 .DS_Store
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+/src/generated/prisma
+
+# --- Prisma & build outputs --------------------------------
+# Prisma generated client (schema에서 output을 src/generated로 지정한 경우)
+src/generated/prisma/
+
+# 로컬 SQLite dev DB (MySQL이라도 혹시 생길 수 있는 파일들 예방)
+prisma/dev.db
+prisma/*.db
+prisma/*.sqlite
+prisma/*.sqlite-journal
+prisma/*.db-journal
+
+/src/db.config.js
+
+# 일반 빌드 산출물
+dist/
+build/
+tmp/

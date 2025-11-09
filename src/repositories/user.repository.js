@@ -1,82 +1,96 @@
-import { pool } from "../db.config.js";
+import { prisma } from "../db.config.js";
 
+// User 데이터 삽입
 export const addUser = async (data) => {
-  const conn = await pool.getConnection();
   try {
     // 이메일 중복 확인
-    const [confirm] = await conn.query(
-      `SELECT EXISTS(SELECT 1 FROM user WHERE email = ?) AS isExistEmail;`,
-      [data.email]
-    );
+    const existing = await prisma.user.findUnique({
+      where: { email: data.email },
+      select: { userId: true },
+    });
+    if (existing) return null;
 
-    if (confirm[0].isExistEmail) {
-      return null; 
-    }
+    const created = await prisma.user.create({
+      data: {
+        email:    data.email,
+        password: data.password,                 
+        name:     data.name ?? null,
+        gender:   data.gender ?? null,
+        birthday: data.birthday ?? null,            
+        address:  data.address ?? null,
+        phone:    data.phone ?? null,
+        areaId:   data.areaId ?? null,
+      },
+      select: { userId: true },
+    });
 
-    const [result] = await conn.query(
-      `INSERT INTO user (email, password, name, gender, birthday, address, phone, area_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
-      [
-        data.email,
-        data.password,
-        data.name,
-        data.gender,
-        data.birthday,
-        data.address,
-        data.phone,
-        data.areaId,
-      ]
-    );
-
-    return result.insertId;
+    return created.userId; 
   } catch (err) {
     throw new Error(`유저 등록 중 오류 발생: ${err.message}`);
-  } finally {
-    conn.release();
   }
 };
 
+// 사용자 정보 얻기
 export const getUser = async (userId) => {
-  const conn = await pool.getConnection();
   try {
-    const [rows] = await conn.query(`SELECT * FROM user WHERE user_id = ?;`, [userId]);
-    return rows[0] ?? null;
-  } finally {
-    conn.release();
+    const user = await prisma.user.findUnique({
+      where: { userId: BigInt(userId) },
+      select: {
+        userId: true,
+        email: true,
+        password: false,
+        name: true,
+        gender: true,
+        birthday: true,
+        address: true,
+        status: true,
+        inactiveDate: true,
+        createdAt: true,
+        updatedAt: true,
+        phone: true,
+        provider: true,
+        areaId: true,
+        phoneVerified: true,
+      },
+    });
+    return user ?? null;
+  } catch (err) {
+    throw new Error(`사용자 조회 중 오류 발생: ${err.message}`);
   }
 };
 
+// 음식 선호 카테고리 매핑
 export const setPreference = async (userId, foodTypeId) => {
-  const conn = await pool.getConnection();
   try {
-    await conn.query(
-      `INSERT INTO preferred_food_type (user_id, food_type_id)
-       VALUES (?, ?);`,
-      [userId, foodTypeId]
-    );
+    await prisma.preferredFoodType.create({
+      data: {
+        user:     { connect: { userId: BigInt(userId) } },
+        foodType: { connect: { foodTypeId: BigInt(foodTypeId) } },
+      },
+    });
   } catch (err) {
     throw new Error(`선호 카테고리 매핑 중 오류 발생: ${err.message}`);
-  } finally {
-    conn.release();
   }
 };
 
+// 사용자 선호 카테고리 반환
 export const getUserPreferencesByUserId = async (userId) => {
-  const conn = await pool.getConnection();
   try {
-    const [preferences] = await conn.query(
-      `SELECT p.prefered_food_type_id AS id,
-              p.user_id,
-              p.food_type_id,
-              f.name AS food_type_name
-       FROM preferred_food_type p
-       JOIN food_type f ON p.food_type_id = f.food_type_id
-       WHERE p.user_id = ?
-       ORDER BY p.food_type_id ASC;`,
-      [userId]
-    );
-    return preferences;
-  } finally {
-    conn.release();
+    const rows = await prisma.preferredFoodType.findMany({
+      where: { userId: BigInt(userId) },
+      include: {
+        foodType: { select: { name: true } },
+      },
+      orderBy: { foodTypeId: "asc" },
+    });
+
+    return rows.map((r) => ({
+      id: r.preferedFoodTypeId,     
+      user_id: r.userId,           
+      food_type_id: r.foodTypeId,  
+      food_type_name: r.foodType?.name ?? null,
+    }));
+  } catch (err) {
+    throw new Error(`선호 카테고리 조회 중 오류 발생: ${err.message}`);
   }
 };
