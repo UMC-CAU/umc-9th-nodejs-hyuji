@@ -86,3 +86,25 @@ export const handleListMyInProgressMissions = async (req, res) => {
       .json({ message: `진행 중 미션 목록 조회 중 오류가 발생했습니다: ${err.message}` });
   }
 };
+
+// 완료 처리
+export const completeUserMission = async (req, res) => {
+  const userMissionId = Number(req.params.userMissionId);
+  const userId = req.user?.id ?? req.body.userId ?? 1;
+
+  try {
+    const result = await missionService.completeUserMission({ userMissionId, userId });
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    const map = {
+      NOT_FOUND:     [404, "존재하지 않는 유저 미션입니다."],
+      UNAUTHORIZED:  [403, "다른 사용자의 미션입니다."],
+      ALREADY_DONE:  [409, "이미 완료된 미션입니다."],
+      INVALID_STATUS:[409, "완료할 수 없는 상태의 미션입니다."],
+      UPDATE_FAILED: [500, "미션 완료 처리 중 오류가 발생했습니다."],
+    };
+    const [code, msg] = map[error.message] ?? [500, "미션 완료 처리 중 오류가 발생했습니다."];
+    return res.status(code).json({ message: msg });
+  }
+};

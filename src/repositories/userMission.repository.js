@@ -65,3 +65,35 @@ export const getInProgressByUser = async (userId, cursor = 0, take = 10) => {
     take: limit,
   });
 };
+
+// DONE 전환 (IN_PROGRESS -> DONE)
+export const completeIfInProgress = async ({ userMissionId, userId }) => {
+  const updated = await prisma.userMission.updateMany({
+    where: { userMissionId, userId, status: 'IN_PROGRESS' },
+    data: { status: 'DONE', updatedAt: new Date() }
+  });
+  return updated.count === 1;
+};
+
+// 단건 상세 조회(미션/가게 포함)
+export const getDetail = async (userMissionId) => {
+  return await prisma.userMission.findUnique({
+    where: { userMissionId },
+    select: {
+      userMissionId: true,
+      userId: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      mission: {
+        select: {
+          missionId: true,
+          storeId: true,
+          title: true,
+          body: true,
+          store: { select: { storeId: true, name: true } },
+        },
+      },
+    },
+  });
+};

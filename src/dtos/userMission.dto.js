@@ -28,3 +28,25 @@ export const responseFromUserMissions = (rows = []) => {
     },
   };
 };
+
+// 단건 응답 DTO
+export const responseFromUserMission = (r = null) => {
+  if (!r) return null;
+  return {
+    id: r.userMissionId,
+    status: r.status,
+    mission: r.mission
+      ? {
+          id: r.mission.missionId,
+          storeId: r.mission.storeId,
+          title: r.mission.title,
+          body: r.mission.body,
+          store: r.mission.store
+            ? { id: r.mission.store.storeId, name: r.mission.store.name }
+            : null,
+        }
+      : null,
+    createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
+    updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : null,
+  };
+};

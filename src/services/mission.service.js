@@ -1,7 +1,7 @@
 import { responseFromMission, responseFromMissions } from "../dtos/mission.dto.js";
 import * as missionRepository from "../repositories/mission.repository.js";
 import * as userMissionRepository from "../repositories/userMission.repository.js";
-import { responseFromUserMissions } from "../dtos/userMission.dto.js";
+import { responseFromUserMissions, responseFromUserMission } from "../dtos/userMission.dto.js";
 
 // 가게에 미션 추가
 export const createMissionForStore = async (storeId, missionDto) => {
@@ -81,4 +81,27 @@ export const listInProgressUserMissions = async (userId, cursor = 0, limit = 10)
   if (!userId) throw new Error("userId가 필요합니다.");
   const rows = await userMissionRepository.getInProgressByUser(userId, cursor, limit);
   return responseFromUserMissions(rows);
+};
+
+// 미션 완료 (IN_PROGRESS -> DONE)
+export const completeUserMission = async ({ userMissionId, userId }) => {
+  // 1) 존재 여부
+  const userMission = await userMissionRepository.findById(userMissionId);
+  if (!userMission) throw new Error("NOT_FOUND");
+
+  // 2) 소유자 확인
+  if (userMission.userId !== userId) throw new Error("UNAUTHORIZED");
+
+  // 3) 상태 검사
+  const doneLike = ["DONE", "COMPLETED"]; 
+  if (doneLike.includes(userMission.status)) throw new Error("ALREADY_DONE");
+  if (userMission.status !== "IN_PROGRESS") throw new Error("INVALID_STATUS");
+
+  // 4) 상태 업데이트
+  const ok = await userMissionRepository.completeIfInProgress({ userMissionId, userId });
+  if (!ok) throw new Error("UPDATE_FAILED");
+
+  // 5) 갱신된 내용 반환
+  const detail = await userMissionRepository.getDetail(userMissionId);
+  return responseFromUserMission(detail);
 };
