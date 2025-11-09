@@ -36,3 +36,32 @@ export const startIfAssigned = async ({ userMissionId, userId }) => {
   });
   return updated.count === 1;
 };
+
+// 진행 중(IN_PROGRESS) 미션 목록
+export const getInProgressByUser = async (userId, cursor = 0, take = 10) => {
+  const limit = Math.max(1, Math.min(50, Number(take) || 10));
+  return await prisma.userMission.findMany({
+    select: {
+      userMissionId: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      mission: {
+        select: {
+          missionId: true,
+          storeId: true,
+          title: true,
+          body: true,
+          store: { select: { storeId: true, name: true } },
+        },
+      },
+    },
+    where: {
+      userId,
+      status: 'IN_PROGRESS',
+      userMissionId: { gt: cursor },
+    },
+    orderBy: { userMissionId: 'asc' },
+    take: limit,
+  });
+};

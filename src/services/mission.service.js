@@ -1,6 +1,7 @@
 import { responseFromMission, responseFromMissions } from "../dtos/mission.dto.js";
 import * as missionRepository from "../repositories/mission.repository.js";
 import * as userMissionRepository from "../repositories/userMission.repository.js";
+import { responseFromUserMissions } from "../dtos/userMission.dto.js";
 
 // 가게에 미션 추가
 export const createMissionForStore = async (storeId, missionDto) => {
@@ -74,4 +75,10 @@ export const listStoreMissions = async (storeId, cursor = 0, limit = 10) => {
   if (!storeId) throw new Error("storeId가 필요합니다.");
   const missions = await missionRepository.getStoreMissions(storeId, cursor, limit);
   return responseFromMissions(missions);
+};
+
+export const listInProgressUserMissions = async (userId, cursor = 0, limit = 10) => {
+  if (!userId) throw new Error("userId가 필요합니다.");
+  const rows = await userMissionRepository.getInProgressByUser(userId, cursor, limit);
+  return responseFromUserMissions(rows);
 };

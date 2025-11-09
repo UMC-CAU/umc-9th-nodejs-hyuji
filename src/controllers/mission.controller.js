@@ -70,3 +70,19 @@ export const handleListStoreMissions = async (req, res) => {
       .json({ message: `미션 목록 조회 중 오류가 발생했습니다: ${err.message}` });
   }
 };
+
+// 진행 중 미션 목록
+export const handleListMyInProgressMissions = async (req, res) => {
+  try {
+    const userId = Number(req.params.userId) || (req.user?.id ?? 1);
+    const cursor = typeof req.query.cursor === "string" ? parseInt(req.query.cursor) : 0;
+    const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit) : 10;
+
+    const result = await missionService.listInProgressUserMissions(userId, cursor, limit);
+    return res.status(200).json(result);
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: `진행 중 미션 목록 조회 중 오류가 발생했습니다: ${err.message}` });
+  }
+};
