@@ -1,5 +1,5 @@
 import * as missionService from "../services/mission.service.js";
-import { bodyToMission } from "../dtos/mission.dto.js"; // 추가된 import
+import { bodyToMission } from "../dtos/mission.dto.js"; 
 
 export const createMissionForStore = async (req, res) => {
   try {
@@ -51,5 +51,22 @@ export const startUserMission = async (req, res) => {
     };
     const [code, msg] = map[error.message] ?? [500, "미션 시작 중 오류가 발생했습니다."];
     return res.status(code).json({ message: msg });
+  }
+};
+
+export const handleListStoreMissions = async (req, res) => {
+  try {
+    const storeId = parseInt(req.params.storeId);
+    if (!storeId) return res.status(400).json({ message: "storeId path param required." });
+
+    const cursor = typeof req.query.cursor === "string" ? parseInt(req.query.cursor) : 0;
+    const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit) : 10;
+
+    const result = await missionService.listStoreMissions(storeId, cursor, limit);
+    return res.status(200).json(result);
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: `미션 목록 조회 중 오류가 발생했습니다: ${err.message}` });
   }
 };

@@ -33,3 +33,21 @@ export const responseFromMission = (mission = {}) => {
       : null,
   };
 };
+
+export const responseFromMissions = (missions = []) => {
+  const data = missions.map((m) => ({
+    id: m.missionId,
+    storeId: m.storeId,
+    title: m.title,
+    body: m.body,
+    createdAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
+    updatedAt: m.updatedAt ? new Date(m.updatedAt).toISOString() : null,
+  }));
+
+  return {
+    data,
+    pagination: {
+      cursor: data.length ? data[data.length - 1].id : null,
+    },
+  };
+};

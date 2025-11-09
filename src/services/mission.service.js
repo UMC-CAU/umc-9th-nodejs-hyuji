@@ -1,4 +1,4 @@
-import { responseFromMission } from "../dtos/mission.dto.js";
+import { responseFromMission, responseFromMissions } from "../dtos/mission.dto.js";
 import * as missionRepository from "../repositories/mission.repository.js";
 import * as userMissionRepository from "../repositories/userMission.repository.js";
 
@@ -67,4 +67,11 @@ export const startUserMission = async ({ userMissionId, userId }) => {
   }
 
   return { message: "미션이 시작되었습니다." };
+};
+
+// 특정 가게 미션 목록
+export const listStoreMissions = async (storeId, cursor = 0, limit = 10) => {
+  if (!storeId) throw new Error("storeId가 필요합니다.");
+  const missions = await missionRepository.getStoreMissions(storeId, cursor, limit);
+  return responseFromMissions(missions);
 };

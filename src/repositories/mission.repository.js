@@ -43,3 +43,25 @@ export const checkAssignable = async ({ missionId, storeId }) => {
   }
   return { ok: true, mission };
 };
+
+// 특정 가게의 미션 목록 
+export const getStoreMissions = async (storeId, cursor = 0, take = 10) => {
+  const limit = Math.max(1, Math.min(50, Number(take) || 10));
+
+  return await prisma.mission.findMany({
+    select: {
+      missionId: true,
+      storeId: true,
+      title: true,
+      body: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    where: {
+      storeId,
+      missionId: { gt: cursor },
+    },
+    orderBy: { missionId: "asc" },
+    take: limit,
+  });
+};
