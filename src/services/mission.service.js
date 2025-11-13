@@ -24,7 +24,7 @@ export const createMissionForStore = async (storeId, missionDto) => {
 export const assignMission = async ({ userId, missionId, storeId }) => {
   // 미션 유효성 검사
   const verdict = await missionRepository.checkAssignable({ missionId, storeId });
-  if (!verdict.ok) throw new Error(verdict.message);
+  if (!verdict.ok) throw new Error(verdict.reason);
 
   // 이미 할당된 미션인지 확인
   const existing = await userMissionRepository.findByUserAndMission(userId, missionId);
