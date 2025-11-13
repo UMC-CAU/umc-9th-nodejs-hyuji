@@ -38,7 +38,6 @@ export const getUser = async (userId) => {
       select: {
         userId: true,
         email: true,
-        password: false,
         name: true,
         gender: true,
         birthday: true,
