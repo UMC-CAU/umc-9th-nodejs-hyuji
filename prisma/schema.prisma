@@ -1,0 +1,256 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum YesNo {
+  Y
+  N
+}
+
+enum UserMissionStatus {
+  ASSIGNED
+  IN_PROGRESS
+  DONE
+}
+
+model User {
+  userId        Int        @id @default(autoincrement()) @map("user_id")
+  name          String?    @db.VarChar(10)
+  email         String?    @unique(map: "email") @db.VarChar(20)
+  password      String     @db.VarChar(100)
+  nickname      String?    @db.VarChar(10)
+  gender        String?    @db.VarChar(10)
+  birthday      DateTime?  @db.DateTime
+  address       String?    @db.Text
+  status        UserStatus @default(ACTIVE)
+  inactiveDate  DateTime?  @map("inactive_date") @db.DateTime
+  createdAt     DateTime?  @map("created_at") @db.DateTime(6)
+  updatedAt     DateTime?  @map("updated_at") @db.DateTime(6)
+  phone         String?    @db.VarChar(20)
+  provider      String?    @db.VarChar(10)
+  areaId        Int?       @map("area_id")
+  phoneVerified YesNo      @default(N) @map("phone_verified")
+
+  // Relations
+  area                Area?              @relation(fields: [areaId], references: [areaId], onDelete: SetNull)
+  preferredFoodTypes  PreferredFoodType[]
+  userMissions        UserMission[]
+  userAgreements      UserAgreement[]
+  questions           Question[]
+
+  @@map("user")
+}
+
+model Area {
+  areaId     Int       @id @default(autoincrement()) @map("area_id")
+  name       String    @db.VarChar(50)
+  createdAt  DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt  DateTime? @map("updated_at") @db.DateTime(6)
+
+  // Relations
+  users  User[]
+  stores Store[]
+
+  @@map("area")
+}
+
+model StoreCategory {
+  storeCategoryId Int       @id @default(autoincrement()) @map("store_category_id")
+  name            String    @db.VarChar(30)
+  createdAt       DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt       DateTime? @map("updated_at") @db.DateTime(6)
+
+  stores Store[]
+
+  @@map("store_category")
+}
+
+model Store {
+  storeId         Int       @id @default(autoincrement()) @map("store_id")
+  name            String    @db.VarChar(100)
+  areaId          Int?      @map("area_id")
+  storeCategoryId Int?      @map("store_category_id")
+  address         String?   @db.VarChar(255)
+  createdAt       DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt       DateTime? @map("updated_at") @db.DateTime(6)
+
+  // Relations
+  area          Area?          @relation(fields: [areaId], references: [areaId], onDelete: SetNull)
+  category      StoreCategory? @relation(fields: [storeCategoryId], references: [storeCategoryId], onDelete: SetNull)
+  missions      Mission[]
+  images        StoreImage[]
+
+  @@map("store")
+}
+
+model Mission {
+  missionId Int       @id @default(autoincrement()) @map("mission_id")
+  storeId   Int       @map("store_id")
+  title     String    @db.VarChar(100)
+  body      String    @db.Text
+  createdAt DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt DateTime? @map("updated_at") @db.DateTime(6)
+
+  // Relations
+  store        Store       @relation(fields: [storeId], references: [storeId])
+  userMissions UserMission[]
+
+  @@map("mission")
+}
+
+model UserMission {
+  userMissionId Int               @id @default(autoincrement()) @map("user_mission_id")
+  userId        Int               @map("user_id")
+  missionId     Int               @map("mission_id")
+  status        UserMissionStatus @default(ASSIGNED)
+  endDate       DateTime?         @map("end_date") @db.DateTime(6)
+  reward        Int?              // 포인트/보상 금액으로 가정
+  createdAt     DateTime?         @map("created_at") @db.DateTime(6)
+  updatedAt     DateTime?         @map("updated_at") @db.DateTime(6)
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [userId])
+  mission Mission @relation(fields: [missionId], references: [missionId])
+  review  Review?
+
+  @@index([userId])
+  @@index([missionId])
+  @@map("user_mission")
+}
+
+model Review {
+  reviewId      Int       @id @default(autoincrement()) @map("review_id")
+  body          String    @db.Text
+  score         Int
+  userMissionId Int       @unique @map("user_mission_id") // 한 user_mission 당 리뷰 하나
+  createdAt     DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt     DateTime? @map("updated_at") @db.DateTime(6)
+
+  // Relations
+  userMission UserMission @relation(fields: [userMissionId], references: [userMissionId])
+  images      ReviewImage[]
+
+  @@map("review")
+}
+
+model ReviewImage {
+  reviewImageId Int     @id @default(autoincrement()) @map("review_image_id")
+  pictureUrl    String  @map("picture_url") @db.VarChar(255)
+  reviewId      Int     @map("review_id")
+
+  review Review @relation(fields: [reviewId], references: [reviewId], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_image")
+}
+
+model FoodType {
+  foodTypeId Int     @id @default(autoincrement()) @map("food_type_id")
+  name       String? @db.VarChar(10)
+
+  preferredBy PreferredFoodType[]
+
+  @@map("food_type")
+}
+
+model PreferredFoodType {
+  preferredFoodTypeId Int @id @default(autoincrement()) @map("preferred_food_type_id")
+  userId             Int @map("user_id")
+  foodTypeId         Int @map("food_type_id")
+
+  user     User     @relation(fields: [userId], references: [userId])
+  foodType FoodType @relation(fields: [foodTypeId], references: [foodTypeId])
+
+  @@index([userId])
+  @@index([foodTypeId])
+  @@map("preferred_food_type")
+}
+
+model Agreement {
+  agreementId Int      @id @default(autoincrement()) @map("agreement_id")
+  code        String   @unique @db.VarChar(50)     // 예: TERMS001
+  title       String   @db.VarChar(100)
+  version     String?  @db.VarChar(20)
+  isRequired  YesNo    @default(Y) @map("is_required")
+  createdAt   DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt   DateTime? @map("updated_at") @db.DateTime(6)
+
+  userAgreements UserAgreement[]
+
+  @@map("agreement")
+}
+
+model UserAgreement {
+  userAgreementId Int      @id @default(autoincrement()) @map("user_agreement_id")
+  userId          Int      @map("user_id")
+  agreementId     Int      @map("agreement_id")
+  agreed          YesNo    @default(Y)
+  agreedAt        DateTime @map("agreed_at") @db.DateTime(6)
+
+  user      User      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  agreement Agreement @relation(fields: [agreementId], references: [agreementId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([agreementId])
+  @@unique([userId, agreementId]) // 동일 약관 중복 동의 방지
+  @@map("user_agreement")
+}
+
+model Question {
+  questionId Int       @id @default(autoincrement()) @map("question_id")
+  userId     Int       @map("user_id")
+  title      String    @db.VarChar(100)
+  body       String    @db.Text
+  createdAt  DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt  DateTime? @map("updated_at") @db.DateTime(6)
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  images QuestionImage[]
+
+  @@index([userId])
+  @@map("question")
+}
+
+model StoreImage {
+  storeImageId Int       @id @default(autoincrement()) @map("store_image_id")
+  storeId      Int       @map("store_id")
+  pictureUrl   String    @map("picture_url") @db.VarChar(255)
+  createdAt    DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt    DateTime? @map("updated_at") @db.DateTime(6)
+
+  // Relations
+  store Store @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
+
+  @@index([storeId])
+  @@map("store_image")
+}
+
+model QuestionImage {
+  questionImageId Int       @id @default(autoincrement()) @map("questions_image_id")
+  questionId      Int       @map("question_id")
+  pictureUrl      String    @map("picture_url") @db.VarChar(255)
+  createdAt       DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt       DateTime? @map("updated_at") @db.DateTime(6)
+
+  // Relations
+  question Question @relation(fields: [questionId], references: [questionId], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("questions_image")
+}

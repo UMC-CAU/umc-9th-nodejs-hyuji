@@ -15,27 +15,15 @@ export const bodyToUser = (body) => {
 };
 
 export const responseFromUser = ({ user, preferences } = {}) => {
-  if (!user) return null;
+  const preferFoods = Array.isArray(preferences)
+    ? preferences
+        .map((p) => p?.foodType?.name ?? p?.foodTypeName ?? null)
+        .filter(Boolean)
+    : [];
 
   return {
-    id: user.user_id,
-    email: user.email,
-    name: user.name,
-    gender: user.gender,
-    birthday: user.birthday
-      ? new Date(user.birthday).toISOString().split("T")[0]
-      : null,
-    address: user.address || "",
-    phone: user.phone || "",
-    areaId: user.area_id || null,
-    preferences: Array.isArray(preferences)
-      ? preferences
-      : user.preferences || [],
-    createdAt: user.created_at
-      ? new Date(user.created_at).toISOString()
-      : undefined,
-    updatedAt: user.updated_at
-      ? new Date(user.updated_at).toISOString()
-      : undefined,
+    email: user?.email ?? null, 
+    name: user?.name ?? null,   
+    preferCategory: preferFoods,
   };
 };
