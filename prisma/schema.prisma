@@ -170,7 +170,7 @@ model FoodType {
 }
 
 model PreferredFoodType {
-  preferedFoodTypeId Int @id @default(autoincrement()) @map("prefered_food_type_id")
+  preferredFoodTypeId Int @id @default(autoincrement()) @map("preferred_food_type_id")
   userId             Int @map("user_id")
   foodTypeId         Int @map("food_type_id")
 
