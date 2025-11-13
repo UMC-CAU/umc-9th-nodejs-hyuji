@@ -13,9 +13,9 @@ export const insertReview = async ({ body, score, userMissionId }) => {
 
   const created = await prisma.review.create({
     data: { 
-      body: body,       
-      score: score,
-      userMissionId: userMissionId 
+      body,       
+      score,
+      userMissionId
     }
   });
   return created.reviewId;
