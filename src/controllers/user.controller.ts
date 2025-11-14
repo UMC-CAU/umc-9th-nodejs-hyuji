@@ -9,10 +9,13 @@ export const handleUserSignUp = async (req: Request, res: Response) => {
     console.log("body:", req.body);
 
     const user = await userSignUp(bodyToUser(req.body));
-    res.status(StatusCodes.OK).json({ result: user });
+    res.status(StatusCodes.CREATED).success(user);
   } catch (err) {
-    res.status(StatusCodes.BAD_REQUEST).json({
-      message: `회원가입 중 오류: ${err instanceof Error ? err.message : "Unknown error"}`,
+    const error = err as any;
+    res.status(StatusCodes.BAD_REQUEST).error({
+      errorCode: error.errorCode || "SIGNUP_FAILED",
+      reason: error.reason || error.message || "Unknown error",
+      data: error.data || null,
     });
   }
 };

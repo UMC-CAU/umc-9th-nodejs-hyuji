@@ -1,70 +1,81 @@
 import { Request, Response } from "express";
+import { StatusCodes } from "http-status-codes";
 import * as missionService from "../services/mission.service.js";
 import { bodyToMission } from "../dtos/mission.dto.js";
+import { InvalidParameterError } from "../errors.js";
 
 export const createMissionForStore = async (req: Request, res: Response) => {
   try {
     const storeId = parseInt(req.params.storeId);
     if (!storeId)
-      return res.status(400).json({ message: "storeId path param required." });
+      throw new InvalidParameterError("storeId path param required.");
 
     const created = await missionService.createMissionForStore(
       storeId,
       bodyToMission(req.body)
     );
-    return res.status(201).json(created);
+    return res.status(StatusCodes.CREATED).success(created);
   } catch (err) {
-    return res.status(400).json({
-      message: `가게 미션 추가 중 오류가 발생했습니다: ${err instanceof Error ? err.message : "Unknown error"}`,
+    const error = err as any;
+    return res.status(StatusCodes.BAD_REQUEST).error({
+      errorCode: error.errorCode || "MISSION_CREATE_FAILED",
+      reason: error.reason || error.message || "Unknown error",
+      data: error.data || null,
     });
   }
 };
 
 export const assignMission = async (req: Request, res: Response) => {
-  const missionId = Number(req.params.missionId);
-  const userId = (req as any).user?.id ?? req.body.userId ?? 1;
-  const { storeId } = req.body;
-
   try {
+    const missionId = Number(req.params.missionId);
+    const userId = (req as any).user?.id ?? req.body.userId ?? 1;
+    const { storeId } = req.body;
+
     const result = await missionService.assignMission({
       userId,
       missionId,
       storeId,
     });
-    return res.status(201).json(result);
+    return res.status(StatusCodes.CREATED).success(result);
   } catch (error) {
-    console.error(error);
-    const map: Record<string, [number, string]> = {
-      MISSION_NOT_FOUND: [404, "존재하지 않는 미션입니다."],
-      STORE_MISMATCH: [409, "이 미션은 해당 매장과 일치하지 않습니다."],
-      ALREADY_ASSIGNED: [409, "이미 할당된 미션입니다."],
+    const err = error as any;
+    const statusMap: Record<string, number> = {
+      M001: StatusCodes.NOT_FOUND,
+      M003: StatusCodes.CONFLICT,
+      M002: StatusCodes.CONFLICT,
     };
-    const errorMsg = error instanceof Error ? error.message : "Unknown error";
-    const [code, msg] = map[errorMsg] ?? [500, "미션 할당 중 오류가 발생했습니다."];
-    return res.status(code).json({ message: msg });
+    const statusCode = statusMap[err.errorCode] || StatusCodes.BAD_REQUEST;
+    return res.status(statusCode).error({
+      errorCode: err.errorCode || "MISSION_ASSIGN_FAILED",
+      reason: err.reason || err.message || "Unknown error",
+      data: err.data || null,
+    });
   }
 };
 
 export const startUserMission = async (req: Request, res: Response) => {
-  const userMissionId = Number(req.params.userMissionId);
-  const userId = (req as any).user?.id ?? req.body.userId ?? 1;
-
   try {
+    const userMissionId = Number(req.params.userMissionId);
+    const userId = (req as any).user?.id ?? req.body.userId ?? 1;
+
     const result = await missionService.startUserMission({
       userMissionId,
       userId,
     });
-    return res.status(200).json(result);
+    return res.status(StatusCodes.OK).success(result);
   } catch (error) {
-    console.error(error);
-    const map: Record<string, [number, string]> = {
-      NOT_FOUND: [404, "존재하지 않는 유저 미션입니다."],
-      ALREADY_DONE: [409, "이미 완료된 미션입니다."],
-      INVALID_STATUS: [409, "시작할 수 없는 상태의 미션입니다."],
+    const err = error as any;
+    const statusMap: Record<string, number> = {
+      UM001: StatusCodes.NOT_FOUND,
+      STATUS001: StatusCodes.CONFLICT,
+      AUTH001: StatusCodes.FORBIDDEN,
     };
-    const errorMsg = error instanceof Error ? error.message : "Unknown error";
-    const [code, msg] = map[errorMsg] ?? [500, "미션 시작 중 오류가 발생했습니다."];
-    return res.status(code).json({ message: msg });
+    const statusCode = statusMap[err.errorCode] || StatusCodes.BAD_REQUEST;
+    return res.status(statusCode).error({
+      errorCode: err.errorCode || "MISSION_START_FAILED",
+      reason: err.reason || err.message || "Unknown error",
+      data: err.data || null,
+    });
   }
 };
 
@@ -72,16 +83,19 @@ export const handleListStoreMissions = async (req: Request, res: Response) => {
   try {
     const storeId = parseInt(req.params.storeId);
     if (!storeId)
-      return res.status(400).json({ message: "storeId path param required." });
+      throw new InvalidParameterError("storeId path param required.");
 
     const cursor =
       typeof req.query.cursor === "string" ? parseInt(req.query.cursor) : 0;
 
     const result = await missionService.listStoreMissions(storeId, cursor);
-    return res.status(200).json(result);
+    return res.status(StatusCodes.OK).success(result);
   } catch (err) {
-    return res.status(500).json({
-      message: `미션 목록 조회 중 오류가 발생했습니다: ${err instanceof Error ? err.message : "Unknown error"}`,
+    const error = err as any;
+    return res.status(StatusCodes.BAD_REQUEST).error({
+      errorCode: error.errorCode || "MISSION_LIST_FAILED",
+      reason: error.reason || error.message || "Unknown error",
+      data: error.data || null,
     });
   }
 };
@@ -103,35 +117,39 @@ export const handleListMyInProgressMissions = async (
       cursor,
       limit
     );
-    return res.status(200).json(result);
+    return res.status(StatusCodes.OK).success(result);
   } catch (err) {
-    return res.status(500).json({
-      message: `진행 중 미션 목록 조회 중 오류가 발생했습니다: ${err instanceof Error ? err.message : "Unknown error"}`,
+    const error = err as any;
+    return res.status(StatusCodes.BAD_REQUEST).error({
+      errorCode: error.errorCode || "IN_PROGRESS_MISSIONS_LIST_FAILED",
+      reason: error.reason || error.message || "Unknown error",
+      data: error.data || null,
     });
   }
 };
 
 export const completeUserMission = async (req: Request, res: Response) => {
-  const userMissionId = Number(req.params.userMissionId);
-  const userId = (req as any).user?.id ?? req.body.userId ?? 1;
-
   try {
+    const userMissionId = Number(req.params.userMissionId);
+    const userId = (req as any).user?.id ?? req.body.userId ?? 1;
+
     const result = await missionService.completeUserMission({
       userMissionId,
       userId,
     });
-    return res.status(200).json(result);
+    return res.status(StatusCodes.OK).success(result);
   } catch (error) {
-    console.error(error);
-    const map: Record<string, [number, string]> = {
-      NOT_FOUND: [404, "존재하지 않는 유저 미션입니다."],
-      UNAUTHORIZED: [403, "다른 사용자의 미션입니다."],
-      ALREADY_DONE: [409, "이미 완료된 미션입니다."],
-      INVALID_STATUS: [409, "완료할 수 없는 상태의 미션입니다."],
-      UPDATE_FAILED: [500, "미션 완료 처리 중 오류가 발생했습니다."],
+    const err = error as any;
+    const statusMap: Record<string, number> = {
+      UM001: StatusCodes.NOT_FOUND,
+      STATUS001: StatusCodes.CONFLICT,
+      AUTH001: StatusCodes.FORBIDDEN,
     };
-    const errorMsg = error instanceof Error ? error.message : "Unknown error";
-    const [code, msg] = map[errorMsg] ?? [500, "미션 완료 처리 중 오류가 발생했습니다."];
-    return res.status(code).json({ message: msg });
+    const statusCode = statusMap[err.errorCode] || StatusCodes.BAD_REQUEST;
+    return res.status(statusCode).error({
+      errorCode: err.errorCode || "MISSION_COMPLETE_FAILED",
+      reason: err.reason || err.message || "Unknown error",
+      data: err.data || null,
+    });
   }
 };

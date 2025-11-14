@@ -6,38 +6,52 @@ import {
   listStoreReviews,
   listUserReviews,
 } from "../services/review.service.js";
+import { InvalidParameterError } from "../errors.js";
 
 export const handleCreateMyPageReview = async (req: Request, res: Response) => {
   try {
     const userMissionId = Number(req.params.userMissionId);
     if (!userMissionId)
-      return res.status(400).json({ message: "userMissionId path param required." });
+      throw new InvalidParameterError("userMissionId path param required.");
 
     const created = await createReviewByUserMissionId(
       userMissionId,
       bodyToReview(req.body)
     );
-    return res.status(201).json(created);
+    return res.status(StatusCodes.CREATED).success(created);
   } catch (err) {
     const error = err as any;
-    if (error.code === "REVIEW_EXISTS")
-      return res.status(409).json({ message: "이미 작성된 리뷰가 있습니다." });
-    return res.status(400).json({
-      message: `오류가 발생했어요. ${error instanceof Error ? error.message : "Unknown error"}`,
+    const statusMap: Record<string, number> = {
+      R001: StatusCodes.CONFLICT,
+      INVALID_PARAMS: StatusCodes.BAD_REQUEST,
+      VALIDATION_ERROR: StatusCodes.BAD_REQUEST,
+    };
+    const statusCode = statusMap[error.errorCode] || StatusCodes.BAD_REQUEST;
+    return res.status(statusCode).error({
+      errorCode: error.errorCode || "REVIEW_CREATE_FAILED",
+      reason: error.reason || error.message || "Unknown error",
+      data: error.data || null,
     });
   }
 };
 
 export const handleListStoreReviews = async (req: Request, res: Response) => {
   try {
-    const reviews = await listStoreReviews(
-      parseInt(req.params.storeId),
-      typeof req.query.cursor === "string" ? parseInt(req.query.cursor) : 0
-    );
-    res.status(StatusCodes.OK).json(reviews);
+    const storeId = parseInt(req.params.storeId);
+    if (!storeId)
+      throw new InvalidParameterError("storeId path param required.");
+
+    const cursor =
+      typeof req.query.cursor === "string" ? parseInt(req.query.cursor) : 0;
+
+    const reviews = await listStoreReviews(storeId, cursor);
+    return res.status(StatusCodes.OK).success(reviews);
   } catch (err) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: `리뷰 목록 조회 중 오류가 발생했습니다: ${err instanceof Error ? err.message : "Unknown error"}`,
+    const error = err as any;
+    return res.status(StatusCodes.BAD_REQUEST).error({
+      errorCode: error.errorCode || "STORE_REVIEWS_LIST_FAILED",
+      reason: error.reason || error.message || "Unknown error",
+      data: error.data || null,
     });
   }
 };
@@ -49,10 +63,13 @@ export const handleListMyReviews = async (req: Request, res: Response) => {
       typeof req.query.cursor === "string" ? parseInt(req.query.cursor) : 0;
 
     const reviews = await listUserReviews(userId, cursor);
-    res.status(StatusCodes.OK).json(reviews);
+    return res.status(StatusCodes.OK).success(reviews);
   } catch (err) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: `내 리뷰 목록 조회 중 오류가 발생했습니다: ${err instanceof Error ? err.message : "Unknown error"}`,
+    const error = err as any;
+    return res.status(StatusCodes.BAD_REQUEST).error({
+      errorCode: error.errorCode || "USER_REVIEWS_LIST_FAILED",
+      reason: error.reason || error.message || "Unknown error",
+      data: error.data || null,
     });
   }
 };

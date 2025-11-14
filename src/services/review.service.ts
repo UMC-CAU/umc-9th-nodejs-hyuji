@@ -9,6 +9,10 @@ import {
   getAllStoreReviews,
   getAllUserReviews,
 } from "../repositories/review.repository.js";
+import {
+  ReviewAlreadyExistsError,
+  ValidationError,
+} from "../errors.js";
 
 interface ReviewDto {
   content?: string | null;
@@ -20,22 +24,29 @@ export const createReviewByUserMissionId = async (
   userMissionId: number,
   reviewDto: ReviewDto
 ) => {
-  if (!userMissionId) throw new Error("userMissionId가 필요합니다.");
-  if (!reviewDto.content) throw new Error("리뷰 내용이 필요합니다.");
+  if (!userMissionId) throw new ValidationError("userMissionId가 필요합니다.");
+  if (!reviewDto.content) throw new ValidationError("리뷰 내용이 필요합니다.");
   if (reviewDto.score == null || Number.isNaN(reviewDto.score))
-    throw new Error("score(숫자)가 필요합니다.");
+    throw new ValidationError("score(숫자)가 필요합니다.");
 
-  const reviewId = await insertReview({
-    body: reviewDto.content,
-    score: reviewDto.score,
-    userMissionId,
-  });
+  try {
+    const reviewId = await insertReview({
+      body: reviewDto.content,
+      score: reviewDto.score,
+      userMissionId,
+    });
 
-  await insertReviewImages(reviewId, reviewDto.images);
+    await insertReviewImages(reviewId, reviewDto.images);
 
-  const data = await getReviewWithImages(reviewId);
+    const data = await getReviewWithImages(reviewId);
 
-  return responseFromReview({ review: data?.review, images: data?.images });
+    return responseFromReview({ review: data?.review, images: data?.images });
+  } catch (err: any) {
+    if (err.code === "REVIEW_EXISTS") {
+      throw new ReviewAlreadyExistsError();
+    }
+    throw err;
+  }
 };
 
 export const listStoreReviews = async (storeId: number, cursor: number = 0) => {
