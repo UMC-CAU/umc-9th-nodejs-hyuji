@@ -161,6 +161,7 @@ prisma/*.sqlite
 prisma/*.sqlite-journal
 prisma/*.db-journal
 
+/src/**/*.js
 /src/db.config.js
 
 # 일반 빌드 산출물
