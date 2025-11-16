@@ -15,29 +15,24 @@ export const insertMissionForStore = async (
   storeId: number,
   { title, body }: MissionCreateData
 ) => {
-  try {
-    const mission = await prisma.mission.create({
-      data: {
-        storeId,
-        title,
-        body,
-      },
-      select: {
-        missionId: true,
-        storeId: true,
-        title: true,
-        body: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+  const mission = await prisma.mission.create({
+    data: {
+      storeId,
+      title,
+      body,
+    },
+    select: {
+      missionId: true,
+      storeId: true,
+      title: true,
+      body: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
     return mission;
-  } catch (err) {
-    throw new Error(
-      `DB 오류: ${err instanceof Error ? err.message : "Unknown error"}`
-    );
-  }
-};
+  };
 
 interface CheckResult {
   ok: boolean;

@@ -1,36 +1,37 @@
 interface MissionBody {
   title?: string;
   body?: string;
-  description?: string;
 }
 
 interface MissionData {
-  title?: string | null;
-  body?: string | null;
+  title?: string;
+  body?: string;
 }
 
 interface MissionInfo {
-  missionId?: number;
-  storeId?: number;
-  title?: string;
-  body?: string;
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
+  missionId: number;
+  storeId: number;
+  title: string;
+  body: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 interface MissionResponse {
-  id?: number;
-  storeId?: number;
-  title?: string;
-  body?: string;
-  createdAt?: string | null;
-  updatedAt?: string | null;
+  id: number;
+  storeId: number;
+  title: string;
+  body: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
-export const bodyToMission = (body: MissionBody): MissionData => ({
-  title: body.title ?? null,
-  body: body.body ?? body.description ?? null,
-});
+export const bodyToMission = (body: MissionBody = {}): MissionData => {
+  return {
+    title: body.title,
+    body: body.body,
+  };
+}
 
 export const bodyToAssign = (body: any) => ({
   userId: body.userId ?? 1,
@@ -42,7 +43,7 @@ export const bodyToStart = (body: any) => ({
   userId: body.userId ?? 1,
 });
 
-export const responseFromMission = (mission: MissionInfo = {}): MissionResponse | null => {
+export const responseFromMission = (mission: MissionInfo | null): MissionResponse | null => {
   if (!mission) return null;
 
   return {
@@ -50,12 +51,8 @@ export const responseFromMission = (mission: MissionInfo = {}): MissionResponse 
     storeId: mission.storeId,
     title: mission.title,
     body: mission.body,
-    createdAt: mission.createdAt
-      ? new Date(mission.createdAt).toISOString()
-      : null,
-    updatedAt: mission.updatedAt
-      ? new Date(mission.updatedAt).toISOString()
-      : null,
+    createdAt: mission.createdAt ? new Date(mission.createdAt).toISOString() : null,
+    updatedAt: mission.updatedAt ? new Date(mission.updatedAt).toISOString() : null,
   };
 };
 

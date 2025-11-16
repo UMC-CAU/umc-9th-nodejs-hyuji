@@ -1,9 +1,7 @@
 interface ReviewBody {
-  body?: string;
-  content?: string;
-  score?: number | string;
+  content?: string | null;
+  score?: number | null;
   images?: string[];
-  imageUrls?: string[];
 }
 
 interface ReviewData {
@@ -13,53 +11,44 @@ interface ReviewData {
 }
 
 interface ReviewInfo {
-  reviewId?: number;
-  body?: string;
-  score?: number;
-  userMissionId?: number;
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
+  reviewId: number;
+  body: string;
+  score: number;
+  userMissionId: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 interface ReviewImageInfo {
-  reviewImageId?: number;
-  pictureUrl?: string;
+  reviewImageId: number;
+  pictureUrl: string;
 }
 
 interface ReviewResponse {
-  id?: number;
-  body?: string;
-  score?: number;
-  userMissionId?: number;
-  images: { id?: number; url?: string }[];
-  createdAt?: string;
-  updatedAt?: string;
+  id: number;
+  body: string;
+  score: number;
+  userMissionId: number;
+  images: { id: number; url: string }[];
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export const bodyToReview = (body: ReviewBody = {}): ReviewData => {
   return {
-    content: body.body ?? body.content ?? null,
-    score:
-      typeof body.score === "number"
-        ? body.score
-        : body.score
-        ? Number(body.score)
-        : null,
-    images: Array.isArray(body.images)
-      ? body.images
-      : Array.isArray(body.imageUrls)
-      ? body.imageUrls
-      : [],
+    content: body.content ?? null,
+    score: body.score ?? null,
+    images: body.images ?? [],
   };
 };
 
 export const responseFromReview = ({
   review,
-  images,
+  images = [],
 }: {
-  review?: ReviewInfo | null;
+  review: ReviewInfo | null | undefined;
   images?: ReviewImageInfo[];
-} = {}): ReviewResponse | null => {
+}): ReviewResponse | null => {
   if (!review) return null;
 
   return {
@@ -67,16 +56,18 @@ export const responseFromReview = ({
     body: review.body,
     score: review.score,
     userMissionId: review.userMissionId,
-    images: (images || []).map((img) => ({
+    images: images.map((img) => ({
       id: img.reviewImageId,
       url: img.pictureUrl,
     })),
-    createdAt: review.createdAt ?? undefined,
-    updatedAt: review.updatedAt ?? undefined,
+    createdAt: review.createdAt ? new Date(review.createdAt).toISOString()
+      : null,
+    updatedAt: review.updatedAt ? new Date(review.updatedAt).toISOString()
+      : null,
   };
 };
 
-export const responseFromReviews = (reviews: any[]) => {
+export const responseFromReviews = (reviews: any[] = []) => {
   return {
     data: reviews,
     pagination: {
@@ -84,3 +75,27 @@ export const responseFromReviews = (reviews: any[]) => {
     },
   };
 };
+
+interface ReviewListRow {
+  reviewId: number;
+  body: string;
+  userMissionId: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  userMission: {
+    userId: number;
+    user: {
+      userId: number;
+      nickname: string | null;
+      name: string | null;
+    } | null;
+    mission: {
+      missionId: number;
+      storeId: number;
+      store: {
+        storeId: number;
+        name: string;
+      } | null;
+    } | null;
+  } | null;
+}

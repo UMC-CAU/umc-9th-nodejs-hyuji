@@ -10,22 +10,22 @@ interface UserBody {
   preferences?: number[];
 }
 
-interface UserData {
+export interface UserCreateData {
   email: string;
   password: string;
-  name?: string;
-  gender?: string;
-  birthday?: Date;
-  address?: string;
-  phone?: string;
+  name?: string | null;
+  gender?: string | null;
+  birthday?: Date | null;
+  address?: string | null;
+  phone?: string | null;
   areaId?: number | null;
-  preferences: number[];
+  preferences: number[];  
 }
 
 interface UserResponse {
-  email?: string | null;
-  name?: string | null;
-  preferCategory: (string | null)[];
+  email: string | null;
+  name: string | null;
+  preferCategory: string[];
 }
 
 interface UserInfo {
@@ -53,19 +53,22 @@ interface PreferenceInfo {
   foodType?: { name?: string | null };
 }
 
-export const bodyToUser = (body: UserBody): UserData => {
-  const birthday = body.birthday ? new Date(body.birthday) : undefined;
+export const bodyToUser = (body: UserBody): UserCreateData => {
+  const birthday = 
+  body.birthday && body.birthday.trim().length > 0
+  ? new Date(body.birthday)
+  : null;
 
   return {
     email: body.email,
     password: body.password,
-    name: body.name,
-    gender: body.gender,
+    name: body.name ?? null,
+    gender: body.gender ?? null,
     birthday,
-    address: body.address || "",
-    phone: body.phone,
-    areaId: body.areaId || null,
-    preferences: body.preferences || [],
+    address: body.address ?? null,
+    phone: body.phone ?? null,
+    areaId: body.areaId ?? null,
+    preferences: body.preferences ?? [],
   };
 };
 
@@ -73,15 +76,13 @@ export const responseFromUser = ({
   user,
   preferences,
 }: {
-  user?: UserInfo;
+  user?: UserInfo | null;
   preferences?: PreferenceInfo[];
 }): UserResponse => {
-  const preferFoods = Array.isArray(preferences)
+  const preferFoods: string[] = Array.isArray(preferences)
     ? preferences
-        .map(
-          (p) => p?.foodType?.name ?? p?.foodTypeName ?? null
-        )
-        .filter(Boolean)
+        .map((p) => p?.foodType?.name ?? p?.foodTypeName ?? null)
+        .filter((v): v is string => Boolean(v))
     : [];
 
   return {

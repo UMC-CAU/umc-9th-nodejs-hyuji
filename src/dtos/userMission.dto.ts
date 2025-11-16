@@ -1,34 +1,44 @@
+type UserMissionStatus = "ASSIGNED" | "IN_PROGRESS" | "DONE";
+
 interface UserMissionRow {
-  userMissionId?: number;
-  status?: string;
-  mission?: {
-    missionId?: number;
-    storeId?: number;
-    title?: string;
-    body?: string;
-    store?: { storeId?: number; name?: string };
-  };
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
+  userMissionId: number;
+  status: UserMissionStatus;
+  mission: {
+    missionId: number;
+    storeId: number;
+    title: string;
+    body: string;
+    store: { 
+      storeId: number; 
+      name: string 
+    } | null;
+  } | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 interface UserMissionResponse {
-  id?: number;
-  status?: string;
-  mission?: {
-    id?: number;
-    storeId?: number;
-    title?: string;
-    body?: string;
-    store?: { id?: number; name?: string } | null;
-  };
-  createdAt?: string | null;
-  updatedAt?: string | null;
+  id: number;
+  status: UserMissionStatus;
+  mission: {
+    id: number;
+    storeId: number;
+    title: string;
+    body: string;
+    store: { id: number; name: string } | null;
+  } | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
-export const responseFromUserMissions = (rows: UserMissionRow[] = []) => {
+export const responseFromUserMissions = (
+  rows: UserMissionRow[] = []
+): {
+  data: UserMissionResponse[];
+  pagination: { cursor: number | null };
+} => {
   const data: UserMissionResponse[] = rows.map((r) => ({
-    id: r.userMissionId,
+    id: r.userMissionId!,
     status: r.status,
     mission: r.mission
       ? {
@@ -61,7 +71,7 @@ export const responseFromUserMission = (
 ): UserMissionResponse | null => {
   if (!r) return null;
   return {
-    id: r.userMissionId,
+    id: r.userMissionId!,
     status: r.status,
     mission: r.mission
       ? {
@@ -70,7 +80,10 @@ export const responseFromUserMission = (
           title: r.mission.title,
           body: r.mission.body,
           store: r.mission.store
-            ? { id: r.mission.store.storeId, name: r.mission.store.name }
+            ? { 
+              id: r.mission.store.storeId, 
+              name: r.mission.store.name,
+              }
             : null,
         }
       : null,
