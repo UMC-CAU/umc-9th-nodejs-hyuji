@@ -33,14 +33,14 @@ export const bodyToMission = (body: MissionBody = {}): MissionData => {
   };
 }
 
-export const bodyToAssign = (body: any) => ({
-  userId: body.userId ?? 1,
+export const bodyToAssign = (body: { userId?: number; storeId?: number }) => ({
+  userId: body.userId,
   storeId: body.storeId ?? null,
 });
 
-export const bodyToStart = (body: any) => ({
-  userMissionId: body.userMissionId ?? null,
-  userId: body.userId ?? 1,
+export const bodyToStart = (body: { userMissionId?: number; userId?: number }) => ({
+  userMissionId: body.userMissionId,
+  userId: body.userId,
 });
 
 export const responseFromMission = (mission: MissionInfo | null): MissionResponse | null => {
