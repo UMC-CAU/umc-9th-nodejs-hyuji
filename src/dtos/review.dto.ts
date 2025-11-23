@@ -67,18 +67,10 @@ export const responseFromReview = ({
   };
 };
 
-export const responseFromReviews = (reviews: any[] = []) => {
-  return {
-    data: reviews,
-    pagination: {
-      cursor: reviews.length ? reviews[reviews.length - 1].reviewId : null,
-    },
-  };
-};
-
 interface ReviewListRow {
   reviewId: number;
   body: string;
+  score: number;
   userMissionId: number;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -99,3 +91,12 @@ interface ReviewListRow {
     } | null;
   } | null;
 }
+
+export const responseFromReviews = (reviews: ReviewListRow[] = []) => {
+  return {
+    data: reviews,
+    pagination: {
+      cursor: reviews.length ? reviews[reviews.length - 1].reviewId : null,
+    },
+  };
+};

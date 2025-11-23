@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>내 API 테스트하기</title>
+</head>
+<body>
+    <h1>회원가입 테스트</h1>
+    <button id="signupButton">가입 요청 (성공)</button>
+    <button id="signupButtonFail">가입 요청 (실패 - 이메일 중복)</button>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        // 1. 성공 테스트 
+        document.getElementById('signupButton').onclick = async () => {
+            const userData = {
+                email: `test_${Date.now()}@test.com`, // 매번 다른 이메일
+                password: "test1234!",                // ✅ DB/DTO에 맞게 password 추가
+                name: "UMC",
+                gender: "여성",
+                birthday: "2000-01-01",              // ✅ birth -> birthday
+                address: "서울시 UMC구 챌린저동 화이팅아파트", // ✅ address 하나로 합치기
+                phone: "010-1234-5678",              // ✅ phoneNumber -> phone
+                areaId: 1,                            // ✅ 예시용 지역 ID (실제 DB에 맞게 조정 가능)
+                preferences: [1]                      // 선호 음식 타입 ID 배열
+            };
+            
+            await callAPI('/api/v1/users/signup', userData);
+        };
+
+        // 2. 실패 테스트 (이메일 중복)
+        document.getElementById('signupButtonFail').onclick = async () => {
+            const userData = {
+                email: "test@example.com",           // 이미 가입된 이메일로 세팅 (seed 데이터에 맞게 바꾸면 좋음)
+                password: "test1234!",               // ✅ 여기도 password 필수
+                name: "UMC",
+                gender: "여성",
+                birthday: "2000-01-01",
+                address: "서울시 UMC구 챌린저동 화이팅아파트",
+                phone: "010-1234-5678",
+                areaId: 1,
+                preferences: [1]
+            };
+            
+            await callAPI('/api/v1/users/signup', userData);
+        };
+
+        // 3. API 호출 함수
+        async function callAPI(path, data) {
+            console.log(`%c[요청] ${path}`, 'color: blue;', data);
+            
+            try {
+                const response = await fetch(API_URL + path, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const responseData = await response.json();
+
+                // 우리 서버는 성공이면 201 + { resultType: "SUCCESS", success: {...}, error: null }
+                // 실패면 400 + { resultType: "FAIL", error: {...}, success: null }
+                if (!response.ok) {
+                    throw responseData;
+                }
+
+                console.log('%c[응답] 성공:', 'color: green;', responseData);
+
+            } catch (error) {
+                console.error('%c[응답] 실패:', 'color: red;', error);
+            }
+        }
+    </script>
+</body>
+</html>
