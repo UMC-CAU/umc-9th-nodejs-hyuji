@@ -1,57 +1,70 @@
 import { prisma } from "../db.config.js";
 
-export const insertReview = async ({ body, score, userMissionId }) => {
+export const insertReview = async ({
+  body,
+  score,
+  userMissionId,
+}: {
+  body: string;
+  score: number;
+  userMissionId: number;
+}): Promise<number> => {
   const exist = await prisma.review.findFirst({
-    where: { userMissionId }
+    where: { userMissionId },
   });
-  
+
   if (exist) {
-    const err = new Error("이미 해당 userMission에 대한 리뷰가 존재합니다.");
-    err.code = "REVIEW_EXISTS";
+    const err = new Error(
+      "이미 해당 userMission에 대한 리뷰가 존재합니다."
+    );
+    (err as any).code = "REVIEW_EXISTS";
     throw err;
   }
 
   const created = await prisma.review.create({
-    data: { 
-      body,       
+    data: {
+      body,
       score,
-      userMissionId
-    }
+      userMissionId,
+    },
   });
   return created.reviewId;
 };
 
-export const insertReviewImages = async (reviewId, imageUrls = []) => {
+export const insertReviewImages = async (
+  reviewId: number,
+  imageUrls: string[] = []
+) => {
   if (!Array.isArray(imageUrls) || imageUrls.length === 0) return [];
 
   await prisma.reviewImage.createMany({
-    data: imageUrls.map(url => ({
+    data: imageUrls.map((url) => ({
       pictureUrl: url,
-      reviewId
-    }))
+      reviewId,
+    })),
   });
 
   return await prisma.reviewImage.findMany({
     where: { reviewId },
-    orderBy: { reviewImageId: 'asc' }
+    orderBy: { reviewImageId: "asc" },
   });
 };
 
-export const getReviewWithImages = async (reviewId) => {
+export const getReviewWithImages = async (reviewId: number) => {
   const review = await prisma.review.findUnique({
-    where: { reviewId }
+    where: { reviewId },
   });
-  
+
   if (!review) return null;
 
   const images = await prisma.reviewImage.findMany({
-    where: { reviewId }
+    where: { reviewId },
   });
 
   return { review, images };
 };
 
-export const getAllStoreReviews = async (storeId, cursor) => {
+export const getAllStoreReviews = async (storeId: number, cursor: number) => {
   return await prisma.review.findMany({
     select: {
       reviewId: true,
@@ -63,40 +76,39 @@ export const getAllStoreReviews = async (storeId, cursor) => {
         select: {
           userId: true,
           user: {
-            select: { 
-              userId: true, 
-              nickname: true, 
-              name: true 
-            }
+            select: {
+              userId: true,
+              nickname: true,
+              name: true,
+            },
           },
           mission: {
             select: {
               missionId: true,
               storeId: true,
-              store: { 
-                select: { 
-                  storeId: true, 
-                  name: true 
-                }
+              store: {
+                select: {
+                  storeId: true,
+                  name: true,
+                },
               },
             },
           },
         },
       },
     },
-    where: { 
-      userMission: { 
-        mission: { storeId } 
+    where: {
+      userMission: {
+        mission: { storeId },
       },
-      reviewId: { gt: cursor }
+      reviewId: { gt: cursor },
     },
     orderBy: { reviewId: "asc" },
     take: 5,
   });
 };
 
-// 내 리뷰 목록
-export const getAllUserReviews = async (userId, cursor) => {
+export const getAllUserReviews = async (userId: number, cursor: number) => {
   return await prisma.review.findMany({
     select: {
       reviewId: true,
@@ -118,9 +130,9 @@ export const getAllUserReviews = async (userId, cursor) => {
         },
       },
     },
-    where: { 
-      userMission: { userId },  
-      reviewId: { gt: cursor }
+    where: {
+      userMission: { userId },
+      reviewId: { gt: cursor },
     },
     orderBy: { reviewId: "asc" },
     take: 5,
