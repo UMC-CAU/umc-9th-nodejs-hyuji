@@ -107,30 +107,33 @@ export const handleUserSignUp = async (req: Request, res: Response) => {
       description: "회원 가입 실패 응답 (이메일 중복)",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              resultType: { type: "string", example: "FAIL" },
-              error: {
-                type: "object",
-                properties: {
-                  errorCode: {
-                    type: "string",
-                    example: "U001"
-                  },
-                  reason: {
-                    type: "string",
-                    nullable: true,
-                    example: "이미 존재하는 이메일입니다."
-                  },
-                  data: {
-                    nullable: true,
-                    example: { email: "test@example.com" }
-                  }
-                }
-              },
-              success: { nullable: true, example: null }
-            }
+          schema: { $ref: "#/components/schemas/CommonErrorResponse" },
+          example: {
+            resultType: "FAIL",
+            error: {
+              errorCode: "U001",
+              reason: "이미 존재하는 이메일입니다.",
+              data: { email: "test@example.com" }
+            },
+            success: null
+          }
+        }
+      }
+    }
+
+    #swagger.responses[400] = {
+      description: "회원 가입 실패 응답 (검증 실패)",
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/CommonErrorResponse" },
+          example: {
+            resultType: "FAIL",
+            error: {
+              errorCode: "VALIDATION_ERROR",
+              reason: "이메일은 필수입니다.",
+              data: null
+            },
+            success: null
           }
         }
       }
