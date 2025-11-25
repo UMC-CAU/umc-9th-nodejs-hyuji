@@ -38,7 +38,7 @@ export const createMissionForStore = async (
     });
     return responseFromMission(mission);
   } catch (err) {
-    throw new ValidationError(
+    throw new Error(
       `미션 생성 실패: ${err instanceof Error ? err.message : "Unknown error"}`
     );
   }
