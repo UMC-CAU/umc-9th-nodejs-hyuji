@@ -22,23 +22,6 @@ import {
 
 dotenv.config();
 
-/* 
-  #swagger.components = {
-    schemas: {
-      CommonErrorResponse: {
-        $resultType: "FAIL",
-        error: {
-          $errorCode: "ERROR_CODE",
-          reason: "에러 사유 메시지입니다.",
-          data: null
-        },
-        success: null
-      }
-    }
-  }
-*/
-
-
 // Express Response에 커스텀 메서드 타입 정의
 declare global {
   namespace Express {
@@ -121,7 +104,7 @@ app.get("/openapi.json", async (req, res, next) => {
     host: "localhost:3000",
     components: {
       schemas: {
-        // 공통 에러 스키마
+        // 공통 에러 스키마 (여러 컨트롤러에서 사용하므로 유지)
         ErrorResponse: {
           type: "object",
           properties: {
@@ -141,7 +124,6 @@ app.get("/openapi.json", async (req, res, next) => {
             },
           },
         },
-
         CommonErrorResponse: {
           type: "object",
           properties: {
@@ -158,206 +140,7 @@ app.get("/openapi.json", async (req, res, next) => {
             },
           },
         },
-
-        // --- User 관련 ---
-        UserSignUpSuccess: {
-          type: "object",
-          properties: {
-            email: { type: "string", example: "test@example.com" },
-            name: { type: "string", nullable: true, example: "UMC 사용자" },
-            preferCategory: {
-              type: "array",
-              items: { type: "string" },
-              example: ["한식", "치킨"],
-            },
-          },
-        },
-
-        // --- Review 관련 ---
-        ReviewItem: {
-          type: "object",
-          properties: {
-            reviewId: { type: "integer", example: 1 },
-            body: { type: "string", example: "맛있어요!" },
-            userMissionId: { type: "integer", example: 4 },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-            userMission: {
-              type: "object",
-              properties: {
-                userId: { type: "integer", example: 4 },
-                user: {
-                  type: "object",
-                  properties: {
-                    userId: { type: "integer", example: 4 },
-                    nickname: { type: "string", example: "유저4" },
-                    name: { type: "string", example: "사용자4" },
-                  },
-                },
-                mission: {
-                  type: "object",
-                  properties: {
-                    missionId: { type: "integer", example: 1 },
-                    storeId: { type: "integer", example: 1 },
-                    store: {
-                      type: "object",
-                      properties: {
-                        storeId: { type: "integer", example: 1 },
-                        name: { type: "string", example: "흑석 고기집" },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        ReviewListSuccess: {
-          type: "object",
-          properties: {
-            data: {
-              type: "array",
-              items: { $ref: "#/components/schemas/ReviewItem" },
-            },
-            pagination: {
-              type: "object",
-              properties: {
-                cursor: {
-                  type: "integer",
-                  nullable: true,
-                  example: 10,
-                },
-              },
-            },
-          },
-        },
-        ReviewCreateSuccess: {
-          type: "object",
-          properties: {
-            reviewId: { type: "integer", example: 1 },
-            body: { type: "string", example: "맛있어요!" },
-            userMissionId: { type: "integer", example: 4 },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-          },
-        },
-
-        // --- Mission / UserMission 관련 ---
-        Mission: {
-          type: "object",
-          properties: {
-            missionId: { type: "integer", example: 1 },
-            storeId: { type: "integer", example: 1 },
-            title: { type: "string", example: "리뷰 작성 미션" },
-            body: {
-              type: "string",
-              nullable: true,
-              example: "해당 가게 리뷰를 작성하면 포인트 지급",
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-          },
-        },
-        MissionListSuccess: {
-          type: "object",
-          properties: {
-            data: {
-              type: "array",
-              items: { $ref: "#/components/schemas/Mission" },
-            },
-            pagination: {
-              type: "object",
-              properties: {
-                cursor: {
-                  type: "integer",
-                  nullable: true,
-                  example: 10,
-                },
-              },
-            },
-          },
-        },
-
-        UserMission: {
-          type: "object",
-          properties: {
-            userMissionId: { type: "integer", example: 1 },
-            userId: { type: "integer", example: 1 },
-            missionId: { type: "integer", example: 1 },
-            areaId: { type: "integer", nullable: true, example: 1 },
-            status: {
-              type: "string",
-              example: "IN_PROGRESS",
-              description: "READY / IN_PROGRESS / DONE",
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              nullable: true,
-            },
-          },
-        },
-        UserMissionListSuccess: {
-          type: "object",
-          properties: {
-            data: {
-              type: "array",
-              items: { $ref: "#/components/schemas/UserMission" },
-            },
-            pagination: {
-              type: "object",
-              properties: {
-                cursor: {
-                  type: "integer",
-                  nullable: true,
-                  example: 10,
-                },
-              },
-            },
-          },
-        },
-        UserMissionDetailSuccess: {
-          $ref: "#/components/schemas/UserMission",
-        },
-
-        SimpleMessageSuccess: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              example: "미션이 시작되었습니다.",
-            },
-          },
-        },
+        // 나머지 도메인별(Mission, Review, User) 스키마는 각 Controller로 이동되었습니다.
       },
     },
   };
@@ -408,7 +191,7 @@ app.get("/api/v1/users/:userId/missions/in-progress", handleListMyInProgressMiss
 app.post("/api/v1/missions/:userMissionId/done", completeUserMission);
 
 // 전역 오류를 처리하기 위한 미들웨어
-app.use((err, req, res, next) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {
       return next(err);
     }

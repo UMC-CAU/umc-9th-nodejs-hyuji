@@ -24,14 +24,8 @@ export const createMissionForStore = async (req: Request, res: Response) => {
             type: "object",
             required: ["title", "body"],
             properties: {
-              title: {
-                type: "string",
-                example: "첫 방문 리뷰 남기기"
-              },
-              body: {
-                type: "string",
-                example: "흑석 고기집에 방문 후 리뷰를 작성하면 포인트를 드립니다."
-              }
+              title: { type: "string", example: "첫 방문 리뷰 남기기" },
+              body: { type: "string", example: "흑석 고기집에 방문 후 리뷰를 작성하면 포인트를 드립니다." }
             }
           }
         }
@@ -375,7 +369,7 @@ export const handleListStoreMissions = async (req: Request, res: Response) => {
       in: 'query',
       required: false,
       schema: { type: 'integer' },
-      description: '페이징을 위한 마지막 미션 ID (다음 페이지 시작점, 없으면 첫 페이지)'
+      description: '페이징을 위한 마지막 미션 ID'
     }
 
     #swagger.responses[200] = {
@@ -388,7 +382,29 @@ export const handleListStoreMissions = async (req: Request, res: Response) => {
               resultType: { type: "string", example: "SUCCESS" },
               error: { type: "object", nullable: true, example: null },
               success: {
-                $ref: "#/components/schemas/MissionListSuccess"
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        missionId: { type: "integer", example: 1 },
+                        storeId: { type: "integer", example: 1 },
+                        title: { type: "string", example: "리뷰 작성 미션" },
+                        body: { type: "string", nullable: true, example: "해당 가게 리뷰를 작성하면 포인트 지급" },
+                        createdAt: { type: "string", format: "date-time", nullable: true },
+                        updatedAt: { type: "string", format: "date-time", nullable: true }
+                      }
+                    }
+                  },
+                  pagination: {
+                    type: "object",
+                    properties: {
+                      cursor: { type: "integer", nullable: true, example: 10 }
+                    }
+                  }
+                }
               }
             }
           }
@@ -456,14 +472,14 @@ export const handleListMyInProgressMissions = async (req: Request, res: Response
       in: 'query',
       required: false,
       schema: { type: 'integer' },
-      description: '페이징을 위한 마지막 userMission ID (다음 페이지 시작점)'
+      description: '페이징을 위한 마지막 userMission ID'
     }
 
     #swagger.parameters['limit'] = {
       in: 'query',
       required: false,
       schema: { type: 'integer', default: 10 },
-      description: '한 번에 조회할 미션 개수 (기본값 10, 최대 50)'
+      description: '한 번에 조회할 미션 개수'
     }
 
     #swagger.responses[200] = {
@@ -476,7 +492,30 @@ export const handleListMyInProgressMissions = async (req: Request, res: Response
               resultType: { type: "string", example: "SUCCESS" },
               error: { type: "object", nullable: true, example: null },
               success: {
-                $ref: "#/components/schemas/UserMissionListSuccess"
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        userMissionId: { type: "integer", example: 1 },
+                        userId: { type: "integer", example: 1 },
+                        missionId: { type: "integer", example: 1 },
+                        areaId: { type: "integer", nullable: true, example: 1 },
+                        status: { type: "string", example: "IN_PROGRESS", description: "READY / IN_PROGRESS / DONE" },
+                        createdAt: { type: "string", format: "date-time", nullable: true },
+                        updatedAt: { type: "string", format: "date-time", nullable: true }
+                      }
+                    }
+                  },
+                  pagination: {
+                    type: "object",
+                    properties: {
+                      cursor: { type: "integer", nullable: true, example: 10 }
+                    }
+                  }
+                }
               }
             }
           }
@@ -555,7 +594,7 @@ export const completeUserMission = async (req: Request, res: Response) => {
                 type: "integer",
                 nullable: true,
                 example: 1,
-                description: "미션을 완료할 사용자 ID (현재는 body 또는 기본값 사용)"
+                description: "미션을 완료할 사용자 ID"
               }
             }
           }
@@ -593,20 +632,15 @@ export const completeUserMission = async (req: Request, res: Response) => {
       description: "사용자 미션 완료 실패 응답 (잘못된 요청/검증 실패 등)",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              resultType: { type: "string", example: "FAIL" },
-              error: {
-                type: "object",
-                properties: {
-                  errorCode: { type: "string", example: "VALIDATION_ERROR" },
-                  reason: { type: "string", example: "미션 완료 처리에 실패했습니다." },
-                  data: { nullable: true, example: null }
-                }
-              },
-              success: { nullable: true, example: null }
-            }
+          schema: { $ref: "#/components/schemas/CommonErrorResponse" },
+          example: {
+            resultType: "FAIL",
+            error: {
+              errorCode: "VALIDATION_ERROR",
+              reason: "미션 완료 처리에 실패했습니다.",
+              data: null
+            },
+            success: null
           }
         }
       }
@@ -616,20 +650,15 @@ export const completeUserMission = async (req: Request, res: Response) => {
       description: "사용자 미션 완료 실패 응답 (권한 없음 – AUTH001)",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              resultType: { type: "string", example: "FAIL" },
-              error: {
-                type: "object",
-                properties: {
-                  errorCode: { type: "string", example: "AUTH001" },
-                  reason: { type: "string", example: "권한이 없습니다." },
-                  data: { nullable: true, example: null }
-                }
-              },
-              success: { nullable: true, example: null }
-            }
+          schema: { $ref: "#/components/schemas/CommonErrorResponse" },
+          example: {
+            resultType: "FAIL",
+            error: {
+              errorCode: "AUTH001",
+              reason: "권한이 없습니다.",
+              data: null
+            },
+            success: null
           }
         }
       }
@@ -639,20 +668,15 @@ export const completeUserMission = async (req: Request, res: Response) => {
       description: "사용자 미션 완료 실패 응답 (존재하지 않는 userMission – UM001)",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              resultType: { type: "string", example: "FAIL" },
-              error: {
-                type: "object",
-                properties: {
-                  errorCode: { type: "string", example: "UM001" },
-                  reason: { type: "string", example: "사용자 미션을 찾을 수 없습니다." },
-                  data: { nullable: true, example: null }
-                }
-              },
-              success: { nullable: true, example: null }
-            }
+          schema: { $ref: "#/components/schemas/CommonErrorResponse" },
+          example: {
+            resultType: "FAIL",
+            error: {
+              errorCode: "UM001",
+              reason: "사용자 미션을 찾을 수 없습니다.",
+              data: null
+            },
+            success: null
           }
         }
       }
@@ -662,20 +686,15 @@ export const completeUserMission = async (req: Request, res: Response) => {
       description: "사용자 미션 완료 실패 응답 (이미 완료된 미션 등 상태 오류 – STATUS001)",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              resultType: { type: "string", example: "FAIL" },
-              error: {
-                type: "object",
-                properties: {
-                  errorCode: { type: "string", example: "STATUS001" },
-                  reason: { type: "string", example: "이미 완료된 미션입니다." },
-                  data: { nullable: true, example: null }
-                }
-              },
-              success: { nullable: true, example: null }
-            }
+          schema: { $ref: "#/components/schemas/CommonErrorResponse" },
+          example: {
+            resultType: "FAIL",
+            error: {
+              errorCode: "STATUS001",
+              reason: "이미 완료된 미션입니다.",
+              data: null
+            },
+            success: null
           }
         }
       }
