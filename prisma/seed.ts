@@ -27,16 +27,25 @@ async function main() {
     },
   });
 
-  const users = [];
+  const users: any[] = [];
   for (let i = 1; i <= 6; i++) {
-    const u = await prisma.user.create({
-      data: {
-        email: `user${i}@example.com`,
+    const email = `user${i}@example.com`;
+
+    // 여러 번 seed 돌려도 안 깨지게 upsert 사용
+    const u = await prisma.user.upsert({
+      where: { email }, // email은 @unique
+      update: {
+        name: `사용자${i}`,
+        nickname: `유저${i}`,
+      },
+      create: {
+        email,
         password: "hashed-password",
         name: `사용자${i}`,
         nickname: `유저${i}`,
       },
     });
+
     users.push(u);
   }
 
@@ -60,14 +69,17 @@ async function main() {
     },
   });
 
+  // 흑석 고기집 리뷰 12개
   for (let i = 0; i < 12; i++) {
     const user = users[i % users.length];
+    const time = new Date(Date.now() - i * 60 * 60 * 1000);
+
     const um = await prisma.userMission.create({
       data: {
         userId: user.userId,
         missionId: targetMission.missionId,
-        createdAt: new Date(Date.now() - i * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - i * 60 * 60 * 1000),
+        createdAt: time,
+        updatedAt: time,
       },
     });
 
@@ -75,21 +87,25 @@ async function main() {
       data: {
         userMissionId: um.userMissionId,
         body: `흑석 고기집 후기 #${i + 1} - 맛있다!`,
-        score: 3 + ((i % 3) + 1) * 0.5,
-        createdAt: new Date(Date.now() - i * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - i * 60 * 60 * 1000),
+        // schema에서 score가 Int라 정수로 변경 (3,4,5 반복)
+        score: 3 + (i % 3),
+        createdAt: time,
+        updatedAt: time,
       },
     });
   }
 
+  // 흑석 분식집 리뷰 3개
   for (let i = 0; i < 3; i++) {
     const user = users[(i + 2) % users.length];
+    const time = new Date(Date.now() - i * 90 * 60 * 1000);
+
     const um = await prisma.userMission.create({
       data: {
         userId: user.userId,
         missionId: otherMission.missionId,
-        createdAt: new Date(Date.now() - i * 90 * 60 * 1000),
-        updatedAt: new Date(Date.now() - i * 90 * 60 * 1000),
+        createdAt: time,
+        updatedAt: time,
       },
     });
 
@@ -97,9 +113,10 @@ async function main() {
       data: {
         userMissionId: um.userMissionId,
         body: `흑석 분식집 후기 #${i + 1} - 가성비 굿`,
+        // 여기도 Int (3,4,3)
         score: 3 + (i % 2),
-        createdAt: new Date(Date.now() - i * 90 * 60 * 1000),
-        updatedAt: new Date(Date.now() - i * 90 * 60 * 1000),
+        createdAt: time,
+        updatedAt: time,
       },
     });
   }

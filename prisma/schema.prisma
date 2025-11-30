@@ -33,7 +33,7 @@ model User {
   userId        Int        @id @default(autoincrement()) @map("user_id")
   name          String?    @db.VarChar(10)
   email         String?    @unique(map: "email") @db.VarChar(20)
-  password      String     @db.VarChar(100)
+  password      String?     @db.VarChar(100)
   nickname      String?    @db.VarChar(10)
   gender        String?    @db.VarChar(10)
   birthday      DateTime?  @db.DateTime

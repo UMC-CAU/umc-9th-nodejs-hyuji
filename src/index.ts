@@ -1,23 +1,22 @@
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, {Express, Request, Response, NextFunction,
+} from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import swaggerAutogen from "swagger-autogen";
 import swaggerUiExpress from "swagger-ui-express";
+import passport from "passport";
+import { googleStrategy, jwtStrategy } from "./auth.config.js";
 import { handleUserSignUp } from "./controllers/user.controller.js";
 import {
   handleCreateMyPageReview,
-  handleListStoreReviews,
-  handleListMyReviews,
+  handleListStoreReviews, handleListMyReviews,
 } from "./controllers/review.controller.js";
 import {
-  assignMission,
-  startUserMission,
-  createMissionForStore,
+  assignMission, startUserMission, createMissionForStore,
   handleListStoreMissions,
-  handleListMyInProgressMissions,
-  completeUserMission,
+  handleListMyInProgressMissions, completeUserMission,
 } from "./controllers/mission.controller.js";
 
 dotenv.config();
@@ -33,16 +32,30 @@ declare global {
         data?: any;
       }) => Response;
     }
+
+    // passport-jwt로 인증된 유저 타입 (Prisma User 기준으로 맞춤)
+    interface User {
+      userId: number;
+      email: string | null;
+      name: string | null;
+    }
   }
+}
+
+
+// Google OAuth 콜백에서 req.user에 실릴 토큰 타입
+interface JwtTokens {
+  accessToken: string;
+  refreshToken: string;
 }
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// ✅ 로깅 미들웨어 (morgan)
+// 로깅 미들웨어 (morgan)
 app.use(morgan("dev"));
 
-// ✅ 쿠키 파싱 미들웨어
+// 쿠키 파싱 미들웨어
 app.use(cookieParser());
 
 // 공통 응답을 사용할 수 있는 헬퍼 함수 등록
@@ -73,18 +86,70 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Passport 초기화 & Strategy 등록
+passport.use(googleStrategy);
+passport.use(jwtStrategy);
+app.use(passport.initialize());
+
+// JWT 인증 미들웨어
+const isLogin = passport.authenticate("jwt", { session: false });
+
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello World!");
+});
+
+// 로그인한 유저만 접근 가능한 마이페이지
+app.get("/mypage", isLogin, (req: Request, res: Response) => {
+  res.status(200).success({
+    message: `인증 성공! ${req.user.name}님의 마이페이지입니다.`,
+    user: req.user,
+  });
+});
+
+// Google OAuth 로그인 시작
+app.get(
+  "/oauth2/login/google",
+  passport.authenticate("google", {
+    session: false,
+  })
+);
+
+// Google OAuth 콜백
+app.get(
+  "/oauth2/callback/google",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login-failed",
+  }),
+  (req: Request, res: Response) => {
+    const tokens = req.user as JwtTokens;
+
+    res.status(200).success({
+      message: "Google 로그인 성공!",
+      tokens, // { accessToken: "...", refreshToken: "..." }
+    });
+  }
+);
+
+// 실패 리다이렉트용 (없으면 404라 하나 만들어둠)
+app.get("/login-failed", (req: Request, res: Response) => {
+  res.status(401).error({
+    errorCode: "AUTH_FAILED",
+    reason: "Google 로그인에 실패했습니다.",
+  });
 });
 
 app.use(
   "/docs",
   swaggerUiExpress.serve,
-  swaggerUiExpress.setup({}, {
-    swaggerOptions: {
-      url: "/openapi.json",
-    },
-  })
+  swaggerUiExpress.setup(
+    {},
+    {
+      swaggerOptions: {
+        url: "/openapi.json",
+      },
+    }
+  )
 );
 
 app.get("/openapi.json", async (req, res, next) => {
@@ -187,11 +252,15 @@ app.post("/api/v1/missions/:userMissionId/start", startUserMission);
 app.get("/api/v1/stores/:storeId/reviews", handleListStoreReviews);
 app.get("/api/v1/users/:userId/reviews", handleListMyReviews);
 app.get("/api/v1/stores/:storeId/missions", handleListStoreMissions);
-app.get("/api/v1/users/:userId/missions/in-progress", handleListMyInProgressMissions);
+app.get(
+  "/api/v1/users/:userId/missions/in-progress",
+  handleListMyInProgressMissions
+);
 app.post("/api/v1/missions/:userMissionId/done", completeUserMission);
 
 // 전역 오류를 처리하기 위한 미들웨어
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use(
+  (err: any, req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {
       return next(err);
     }
