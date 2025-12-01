@@ -27,39 +27,39 @@ if (!PASSPORT_GOOGLE_CLIENT_ID || !PASSPORT_GOOGLE_CLIENT_SECRET) {
   throw new Error("Google OAuth env vars are not defined");
 }
 
-// 토큰에 넣을 사용자 타입 정의
-interface TokenUser {
-  id: number;
+// 👉 우리 서비스에서 쓸 공통 유저 타입 (PK: userId)
+export interface TokenUser {
+  userId: number;
   email: string;
+  name?: string | null;
 }
 
+// Access / Refresh 토큰 생성 헬퍼
 export const generateAccessToken = (user: TokenUser): string => {
   return jwt.sign(
-    { id: user.id, email: user.email },
-    JWT_SECRET, // string으로 잘 추론됨
+    {
+      userId: user.userId, // ✅ userId 로 통일
+      email: user.email,
+    },
+    JWT_SECRET as string,
     { expiresIn: "1h" }
   );
 };
 
 export const generateRefreshToken = (
-  user: Pick<TokenUser, "id">
+  user: Pick<TokenUser, "userId">
 ): string => {
   return jwt.sign(
-    { id: user.id },
-    JWT_SECRET,
+    {
+      userId: user.userId, // ✅ userId 로 통일
+    },
+    JWT_SECRET as string,
     { expiresIn: "14d" }
   );
 };
 
-// JWT에 넣을 유저 타입 (앞에서 만든 TokenUser와 호환)
-interface OAuthUser {
-  id: number;
-  email: string;
-  name?: string | null;
-}
-
-// Google 계정 검증 + 우리 DB User 모델에 맞게 조회/생성
-const googleVerify = async (profile: Profile): Promise<OAuthUser> => {
+// Google 계정 기반으로 우리 DB User 조회/생성
+const googleVerify = async (profile: Profile): Promise<TokenUser> => {
   const email = profile.emails?.[0]?.value;
 
   if (!email) {
@@ -71,7 +71,7 @@ const googleVerify = async (profile: Profile): Promise<OAuthUser> => {
     );
   }
 
-  const user = await prisma.user.findFirst({
+  const existing = await prisma.user.findFirst({
     where: { email },
     select: {
       userId: true,
@@ -81,11 +81,11 @@ const googleVerify = async (profile: Profile): Promise<OAuthUser> => {
     },
   });
 
-  if (user !== null) {
+  if (existing) {
     return {
-      id: user.userId, // userId → JWT용 id
-      email: user.email,
-      name: user.name,
+      userId: existing.userId,
+      email: existing.email,
+      name: existing.name,
     };
   }
 
@@ -103,13 +103,13 @@ const googleVerify = async (profile: Profile): Promise<OAuthUser> => {
   });
 
   return {
-    id: created.userId,
+    userId: created.userId,
     email: created.email,
     name: created.name,
   };
 };
 
-// GoogleStrategy
+// GoogleStrategy: ✅ 유저 정보만 req.user 로 넘김
 export const googleStrategy = new GoogleStrategy(
   {
     clientID: PASSPORT_GOOGLE_CLIENT_ID,
@@ -125,45 +125,43 @@ export const googleStrategy = new GoogleStrategy(
   ): Promise<void> => {
     try {
       const user = await googleVerify(profile);
-
-      const jwtAccessToken = generateAccessToken(user);
-      const jwtRefreshToken = generateRefreshToken(user);
-
-      done(null, {
-        accessToken: jwtAccessToken,
-        refreshToken: jwtRefreshToken,
-      });
+      // 여기서는 토큰 만들지 않고, 유저만 넘김
+      done(null, user);
     } catch (err) {
       done(err as Error);
     }
   }
 );
 
-// AccessToken에 들어있는 payload 타입
+// JWT payload 타입
 interface JwtPayload {
-  id: number;      // generateAccessToken에서 넣은 id
-  email?: string;  // 옵션
+  userId: number;
+  email?: string;
   iat?: number;
   exp?: number;
 }
 
 const jwtOptions: StrategyOptions = {
-  // 요청 헤더의 'Authorization: Bearer <token>' 에서 토큰 추출
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: JWT_SECRET,
+  secretOrKey: JWT_SECRET as string,
 };
 
 export const jwtStrategy = new JwtStrategy(
   jwtOptions,
   async (payload: JwtPayload, done) => {
     try {
-      // Prisma 스키마 기준 PK는 userId
+      const userId = payload.userId;
+
+      if (!userId) {
+        return done(new Error("토큰에 userId가 없습니다."), false);
+      }
+
       const user = await prisma.user.findUnique({
-        where: { userId: payload.id },
+        where: { userId },
       });
 
       if (user) {
-        return done(null, user); // req.user에 user 객체 세팅
+        return done(null, user);
       } else {
         return done(null, false);
       }

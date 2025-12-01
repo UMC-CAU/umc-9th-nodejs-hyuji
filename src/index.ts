@@ -7,8 +7,14 @@ import swaggerAutogen from "swagger-autogen";
 import swaggerUiExpress from "swagger-ui-express";
 import passport from "passport";
 import path from "path";
+import jwt from "jsonwebtoken";
 
-import { googleStrategy, jwtStrategy } from "./auth.config.js";
+import { googleStrategy,
+  jwtStrategy,
+  generateAccessToken,
+  generateRefreshToken,
+} from "./auth.config.js";
+import type { TokenUser } from "./auth.config.js";
 import { handleUserSignUp, handleUpdateMyInfo } from "./controllers/user.controller.js";
 import {
   handleCreateMyPageReview,
@@ -99,40 +105,47 @@ app.get("/mypage", isLogin, (req: Request, res: Response) => {
 
 // 구글 인증 라우트
 app.get(
-  "/auth/google",
+  "/oauth2/login/google",
   passport.authenticate("google", {
     scope: ["profile", "email"],
   })
 );
 
 app.get(
-  "/auth/google/callback",
+  "/oauth2/callback/google",
   passport.authenticate("google", {
     failureRedirect: "/login",
     session: false,
   }),
   (req: Request, res: Response) => {
-    const user = req.user as any;
-    const jwt = require("jsonwebtoken");
+    const user = req.user as TokenUser | undefined;
 
-    const token = jwt.sign(
-      {
+    if (!user) {
+      return res.status(400).error({
+        errorCode: "AUTH_NO_USER",
+        reason: "인증된 사용자 정보를 찾을 수 없습니다.",
+        data: null,
+      });
+    }
+
+    // ✅ 여기서 access / refresh 토큰 생성
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken({ userId: user.userId });
+
+    return res.status(200).success({
+      message: "Google 로그인에 성공했습니다.",
+      user: {
         id: user.userId,
         email: user.email,
+        name: user.name ?? null,
       },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "1h" }
-    );
-
-    res.cookie("access_token", token, {
-      httpOnly: true,
-      secure: false,
-      maxAge: 3600000,
+      redirectUrl: "/mypage",
+      accessToken,
+      refreshToken,
     });
-
-    res.redirect("/mypage");
   }
 );
+
 
 // Swagger 문서 생성 (서버 기동 시 1회)
 if (process.env.NODE_ENV !== "production") {
