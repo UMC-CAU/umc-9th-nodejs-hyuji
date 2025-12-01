@@ -26,21 +26,26 @@ interface MissionResponse {
   updatedAt: string | null;
 }
 
-export const bodyToMission = (body: MissionBody = {}): MissionData => {
+interface MissionListResponse {
+  data: MissionResponse[];
+  pagination: {
+    cursor: number | null;
+  };
+}
+
+export const bodyToMission = (body: MissionBody): MissionData => {
   return {
     title: body.title,
     body: body.body,
   };
-}
+};
 
-export const bodyToAssign = (body: { userId?: number; storeId?: number }) => ({
-  userId: body.userId,
+export const bodyToAssign = (body: { storeId?: number }) => ({
   storeId: body.storeId ?? null,
 });
 
-export const bodyToStart = (body: { userMissionId?: number; userId?: number }) => ({
+export const bodyToStart = (body: { userMissionId?: number }) => ({
   userMissionId: body.userMissionId,
-  userId: body.userId,
 });
 
 export const responseFromMission = (mission: MissionInfo | null): MissionResponse | null => {
@@ -56,8 +61,10 @@ export const responseFromMission = (mission: MissionInfo | null): MissionRespons
   };
 };
 
-export const responseFromMissions = (missions: MissionInfo[] = []) => {
-  const data: MissionResponse[] = missions.map((m) => ({
+export const responseFromMissions = (
+  missions: MissionInfo[]
+): MissionListResponse => {
+  const data = missions.map((m) => ({
     id: m.missionId,
     storeId: m.storeId,
     title: m.title,

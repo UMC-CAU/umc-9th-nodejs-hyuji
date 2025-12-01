@@ -8,6 +8,18 @@ import {
 } from "../services/review.service.js";
 import { InvalidParameterError } from "../errors.js";
 
+const resolveUserId = (req: Request): number => {
+  const authUser = (req as any).user;
+  const authUserId =
+    typeof authUser?.userId === "number" ? authUser.userId : authUser?.id;
+
+  if (typeof authUserId === "number" && !Number.isNaN(authUserId)) {
+    return authUserId;
+  }
+
+  throw new InvalidParameterError("인증된 사용자 정보가 필요합니다.");
+};
+
 export const handleCreateMyPageReview = async (req: Request, res: Response) => {
   /*
     #swagger.summary = '마이페이지 리뷰 작성 API'
@@ -54,12 +66,22 @@ export const handleCreateMyPageReview = async (req: Request, res: Response) => {
               success: {
                 type: "object",
                 properties: {
-                  id: { type: "integer", example: 1 },
+                  reviewId: { type: "integer", example: 1 },
                   body: { type: "string", example: "너무 맛있었어요!" },
                   score: { type: "number", example: 4.5 },
                   userMissionId: { type: "integer", example: 4 },
                   createdAt: { type: "string", format: "date-time", nullable: true },
-                  updatedAt: { type: "string", format: "date-time", nullable: true }
+                  updatedAt: { type: "string", format: "date-time", nullable: true },
+                  images: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        reviewImageId: { type: "integer", example: 1 },
+                        pictureUrl: { type: "string", example: "https://example.com/review1.jpg" }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -69,7 +91,7 @@ export const handleCreateMyPageReview = async (req: Request, res: Response) => {
     }
 
     #swagger.responses[400] = {
-      description: "리뷰 작성 실패 (검증 실패 – 내용 누락)",
+      description: "리뷰 작성 실패 응답 (검증 실패)",
       content: {
         "application/json": {
           schema: {
@@ -80,30 +102,7 @@ export const handleCreateMyPageReview = async (req: Request, res: Response) => {
                 type: "object",
                 properties: {
                   errorCode: { type: "string", example: "VALIDATION_ERROR" },
-                  reason: { type: "string", example: "리뷰 내용이 필요합니다." },
-                  data: { nullable: true, example: null }
-                }
-              },
-              success: { nullable: true, example: null }
-            }
-          }
-        }
-      }
-    }
-
-    #swagger.responses[400] = {
-      description: "리뷰 작성 실패 (검증 실패 – score 누락)",
-      content: {
-        "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              resultType: { type: "string", example: "FAIL" },
-              error: {
-                type: "object",
-                properties: {
-                  errorCode: { type: "string", example: "VALIDATION_ERROR" },
-                  reason: { type: "string", example: "score(숫자)가 필요합니다." },
+                  reason: { type: "string", example: "content와 score는 필수입니다." },
                   data: { nullable: true, example: null }
                 }
               },
@@ -126,7 +125,7 @@ export const handleCreateMyPageReview = async (req: Request, res: Response) => {
                 type: "object",
                 properties: {
                   errorCode: { type: "string", example: "R001" },
-                  reason: { type: "string", example: "이미 작성된 리뷰가 있습니다." },
+                  reason: { type: "string", example: "이미 해당 userMission에 대한 리뷰가 존재합니다." },
                   data: { nullable: true, example: null }
                 }
               },
@@ -205,20 +204,21 @@ export const handleListStoreReviews = async (req: Request, res: Response) => {
                         userMissionId: { type: "integer", example: 4 },
                         createdAt: { type: "string", format: "date-time", nullable: true },
                         updatedAt: { type: "string", format: "date-time", nullable: true },
-                        userMission: {
-                          type: "object",
-                          nullable: true,
-                          properties: {
-                            userId: { type: "integer", example: 4 },
-                            user: {
-                              type: "object",
-                              nullable: true,
-                              properties: {
-                                userId: { type: "integer", example: 4 },
-                                nickname: { type: "string", nullable: true, example: "유저4" },
-                                name: { type: "string", nullable: true, example: "사용자4" }
-                              }
+                        images: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              reviewImageId: { type: "integer", example: 1 },
+                              pictureUrl: { type: "string", example: "https://example.com/review1.jpg" }
                             }
+                          }
+                        },
+                        user: {
+                          type: "object",
+                          properties: {
+                            userId: { type: "integer", example: 1 },
+                            nickname: { type: "string", example: "배달러" }
                           }
                         }
                       }
@@ -239,7 +239,7 @@ export const handleListStoreReviews = async (req: Request, res: Response) => {
     }
 
     #swagger.responses[400] = {
-      description: "상점 리뷰 목록 조회 실패 (잘못된 storeId)",
+      description: "상점 리뷰 목록 조회 실패",
       content: {
         "application/json": {
           schema: {
@@ -249,8 +249,8 @@ export const handleListStoreReviews = async (req: Request, res: Response) => {
               error: {
                 type: "object",
                 properties: {
-                  errorCode: { type: "string", example: "INVALID_PARAMS" },
-                  reason: { type: "string", example: "storeId path param required." },
+                  errorCode: { type: "string", example: "STORE_REVIEWS_LIST_FAILED" },
+                  reason: { type: "string", example: "리뷰 조회에 실패했습니다." },
                   data: { nullable: true, example: null }
                 }
               },
@@ -261,8 +261,9 @@ export const handleListStoreReviews = async (req: Request, res: Response) => {
       }
     }
   */
+
   try {
-    const storeId = parseInt(req.params.storeId);
+    const storeId = Number(req.params.storeId);
     if (!storeId)
       throw new InvalidParameterError("storeId path param required.");
 
@@ -284,14 +285,8 @@ export const handleListStoreReviews = async (req: Request, res: Response) => {
 export const handleListMyReviews = async (req: Request, res: Response) => {
   /*
     #swagger.summary = '내 리뷰 목록 조회 API'
+    #swagger.description = '로그인한 사용자의 리뷰 목록을 조회합니다.'
     #swagger.tags = ['Review']
-
-    #swagger.parameters['userId'] = {
-      in: 'path',
-      required: true,
-      schema: { type: 'integer' },
-      description: '리뷰를 조회할 사용자 ID'
-    }
 
     #swagger.parameters['cursor'] = {
       in: 'query',
@@ -323,20 +318,11 @@ export const handleListMyReviews = async (req: Request, res: Response) => {
                         userMissionId: { type: "integer", example: 4 },
                         createdAt: { type: "string", format: "date-time", nullable: true },
                         updatedAt: { type: "string", format: "date-time", nullable: true },
-                        userMission: {
+                        store: {
                           type: "object",
-                          nullable: true,
                           properties: {
-                            userId: { type: "integer", example: 4 },
-                            user: {
-                              type: "object",
-                              nullable: true,
-                              properties: {
-                                userId: { type: "integer", example: 4 },
-                                nickname: { type: "string", nullable: true, example: "유저4" },
-                                name: { type: "string", nullable: true, example: "사용자4" }
-                              }
-                            }
+                            storeId: { type: "integer", example: 1 },
+                            name: { type: "string", example: "흑석 고기집" }
                           }
                         }
                       }
@@ -379,8 +365,9 @@ export const handleListMyReviews = async (req: Request, res: Response) => {
       }
     }
   */
+
   try {
-    const userId = Number(req.params.userId) || ((req as any).user?.id ?? 1);
+    const userId = resolveUserId(req);
     const cursor =
       typeof req.query.cursor === "string" ? parseInt(req.query.cursor) : 0;
 
