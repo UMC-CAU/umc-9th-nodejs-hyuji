@@ -6,6 +6,8 @@ import {
   getUser,
   getUserPreferencesByUserId,
   setPreference,
+  updateUserProfile,
+  replaceUserPreferences,
 } from "../repositories/user.repository.js";
 
 export const userSignUp = async (data: UserCreateData) => {
@@ -26,6 +28,26 @@ export const userSignUp = async (data: UserCreateData) => {
 
   const user = await getUser(joinUserId);
   const userPreferences = await getUserPreferencesByUserId(joinUserId);
+
+  return responseFromUser({ user, preferences: userPreferences });
+};
+
+export const updateMyInfo = async (
+  userId: number,
+  data: UserUpdateData
+) => {
+  const { preferences, ...profile } = data;
+
+  // user 테이블 기본 정보 업데이트
+  await updateUserProfile(userId, profile);
+
+  // 선호 카테고리 변경이 들어온 경우에만 교체
+  if (Array.isArray(preferences)) {
+    await replaceUserPreferences(userId, preferences);
+  }
+
+  const user = await getUser(userId);
+  const userPreferences = await getUserPreferencesByUserId(userId);
 
   return responseFromUser({ user, preferences: userPreferences });
 };

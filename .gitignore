@@ -168,3 +168,5 @@ prisma/*.db-journal
 dist/
 build/
 tmp/
+
+swagger-output.json

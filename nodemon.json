@@ -1,0 +1,5 @@
+{
+  "watch": ["src"],
+  "ext": "ts,json,prisma",
+  "ignore": ["swagger-output.json"]
+}

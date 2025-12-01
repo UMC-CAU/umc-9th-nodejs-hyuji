@@ -78,3 +78,41 @@ export const getUserPreferencesByUserId = async (userId: number) => {
     foodTypeName: r.foodType?.name ?? null,
   }));
 };
+
+type UserUpdateDbData = {
+  name?: string | null;
+  gender?: string | null;
+  birthday?: Date | null;
+  address?: string | null;
+  phone?: string | null;
+  areaId?: number | null;
+};
+
+export const updateUserProfile = async (
+  userId: number,
+  data: UserUpdateDbData
+): Promise<void> => {
+  await prisma.user.update({
+    where: { userId },
+    data,
+  });
+};
+
+export const replaceUserPreferences = async (
+  userId: number,
+  foodTypeIds: number[]
+): Promise<void> => {
+  // 기존 선호 카테고리 전부 삭제
+  await prisma.preferredFoodType.deleteMany({
+    where: { userId },
+  });
+
+  if (!foodTypeIds.length) return;
+
+  await prisma.preferredFoodType.createMany({
+    data: foodTypeIds.map((foodTypeId) => ({
+      userId,
+      foodTypeId,
+    })),
+  });
+};

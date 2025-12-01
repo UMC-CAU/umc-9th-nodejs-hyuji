@@ -1,5 +1,4 @@
-import express, {Express, Request, Response, NextFunction,
-} from "express";
+import express, { Express, Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
@@ -7,15 +6,19 @@ import cookieParser from "cookie-parser";
 import swaggerAutogen from "swagger-autogen";
 import swaggerUiExpress from "swagger-ui-express";
 import passport from "passport";
+import path from "path";
+
 import { googleStrategy, jwtStrategy } from "./auth.config.js";
-import { handleUserSignUp } from "./controllers/user.controller.js";
+import { handleUserSignUp, handleUpdateMyInfo } from "./controllers/user.controller.js";
 import {
   handleCreateMyPageReview,
-  handleListStoreReviews, handleListMyReviews,
+  handleListStoreReviews,
+  handleListMyReviews,
 } from "./controllers/review.controller.js";
 import {
   createMissionForStore,
-  assignMission,  startUserMission,
+  assignMission,
+  startUserMission,
   handleListStoreMissions,
   handleListMyInProgressMissions,
   completeUserMission,
@@ -43,6 +46,7 @@ declare global {
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
+// 미들웨어
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
@@ -80,6 +84,7 @@ app.use(passport.initialize());
 // JWT 인증 미들웨어
 const isLogin = passport.authenticate("jwt", { session: false });
 
+// 기본 라우트
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello World!");
 });
@@ -92,6 +97,7 @@ app.get("/mypage", isLogin, (req: Request, res: Response) => {
   });
 });
 
+// 구글 인증 라우트
 app.get(
   "/auth/google",
   passport.authenticate("google", {
@@ -107,7 +113,6 @@ app.get(
   }),
   (req: Request, res: Response) => {
     const user = req.user as any;
-
     const jwt = require("jsonwebtoken");
 
     const token = jwt.sign(
@@ -129,67 +134,62 @@ app.get(
   }
 );
 
-// Swagger 설정
+// Swagger 문서 생성 (서버 기동 시 1회)
 if (process.env.NODE_ENV !== "production") {
   const swagger = swaggerAutogen();
+  const outputFile = "swagger-output.json";
+  const routes = ["./src/index.ts"];
 
-  const generateDocs = async () => {
-    const outputFile = "/dev/null"; // 파일 출력은 사용하지 않습니다.
-    const routes = ["./src/index.ts"];
-    const doc = {
-      info: {
-        title: "UMC 9th",
-        description: "UMC 9th Node.js 테스트 프로젝트입니다.",
-      },
-      host: "localhost:3000",
-      components: {
-        schemas: {
-          // 공통 에러 스키마 (여러 컨트롤러에서 사용하므로 유지)
-          ErrorResponse: {
-            type: "object",
-            properties: {
-              errorCode: {
-                type: "string",
-                description: "에러 코드 (예: VALIDATION_ERROR)",
-              },
-              reason: {
-                type: "string",
-                description: "에러 발생 원인 메시지",
-              },
-              data: {
-                type: "object",
-                nullable: true,
-                description: "에러와 관련된 추가 데이터 (선택 사항)",
-              },
+  const doc = {
+    info: {
+      title: "UMC 9th",
+      description: "UMC 9th Node.js 테스트 프로젝트입니다.",
+    },
+    host: "localhost:3000",
+    components: {
+      schemas: {
+        // 공통 에러 스키마 (여러 컨트롤러에서 사용하므로 유지)
+        ErrorResponse: {
+          type: "object",
+          properties: {
+            errorCode: {
+              type: "string",
+              description: "에러 코드 (예: VALIDATION_ERROR)",
+            },
+            reason: {
+              type: "string",
+              description: "에러 발생 원인 메시지",
+            },
+            data: {
+              type: "object",
+              nullable: true,
+              description: "에러와 관련된 추가 데이터 (선택 사항)",
             },
           },
-          CommonErrorResponse: {
-            type: "object",
-            properties: {
-              resultType: { type: "string", example: "FAIL" },
-              error: {
-                $ref: "#/components/schemas/ErrorResponse",
-              },
-              success: {
-                nullable: true,
-                example: null,
-              },
+        },
+        CommonErrorResponse: {
+          type: "object",
+          properties: {
+            resultType: { type: "string", example: "FAIL" },
+            error: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+            success: {
+              nullable: true,
+              example: null,
             },
           },
         },
       },
-    };
-
-    try {
-      await swagger(outputFile, routes, doc);
-    } catch (error) {
-      console.error("Swagger documentation generation failed:", error);
-    }
+    },
   };
 
-  generateDocs().catch((err) => console.error(err));
+  swagger(outputFile, routes, doc).catch((error: any) => {
+    console.error("Swagger documentation generation failed:", error);
+  });
 }
 
+// Swagger UI
 app.use(
   "/docs",
   swaggerUiExpress.serve,
@@ -203,21 +203,11 @@ app.use(
   )
 );
 
-app.get("/openapi.json", async (req, res, next) => {
+// OpenAPI JSON 서빙
+app.get("/openapi.json", (req: Request, res: Response) => {
   // #swagger.ignore = true
-  const options = {
-    openapi: "3.0.0",
-    disableLogs: true,
-    writeOutputFile: false,
-  };
-
-  try {
-    const swaggerDoc = await swaggerAutogen(options)();
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerDoc);
-  } catch (error) {
-    next(error);
-  }
+  const filePath = path.join(process.cwd(), "swagger-output.json");
+  res.sendFile(filePath);
 });
 
 // 테스트용 쿠키 생성 API
@@ -258,51 +248,29 @@ app.get("/clearcookie", (req: Request, res: Response) => {
   res.status(200).success({ message: "모든 쿠키가 삭제되었습니다!" });
 });
 
+// API 라우트
 app.post("/api/v1/users/signup", handleUserSignUp);
-app.post("/api/v1/mypage/:userMissionId", isLogin, handleCreateMyPageReview);
-app.post(
-  "/api/v1/missions/:missionId/assign",
-  isLogin,
-  assignMission
-);
-app.post(
-  "/api/v1/missions/:userMissionId/start",
-  isLogin,
-  startUserMission
-);
+app.patch("/api/v1/users/me", isLogin, handleUpdateMyInfo);
 
-app.get(
-  "/api/v1/users/reviews",
-  isLogin,
-  handleListMyReviews
-);
+app.post("/api/v1/mypage/:userMissionId", isLogin, handleCreateMyPageReview);
+
+app.post("/api/v1/missions/:missionId/assign", isLogin, assignMission);
+app.post("/api/v1/missions/:userMissionId/start", isLogin, startUserMission);
+
+app.get("/api/v1/users/reviews", isLogin, handleListMyReviews);
 app.get(
   "/api/v1/users/missions/in-progress",
   isLogin,
   handleListMyInProgressMissions
 );
-app.post(
-  "/api/v1/missions/:userMissionId/done",
-  isLogin,
-  completeUserMission
-);
-app.post(
-  "/api/v1/stores/:storeId/missions",
-  isLogin,
-  createMissionForStore
-);
-app.get(
-  "/api/v1/stores/:storeId/reviews",
-  isLogin,
-  handleListStoreReviews
-);
-app.get(
-  "/api/v1/stores/:storeId/missions",
-  isLogin,
-  handleListStoreMissions
-);
 
-// 전역 오류를 처리하기 위한 미들웨어
+app.post("/api/v1/missions/:userMissionId/done", isLogin, completeUserMission);
+
+app.post("/api/v1/stores/:storeId/missions", isLogin, createMissionForStore);
+app.get("/api/v1/stores/:storeId/reviews", isLogin, handleListStoreReviews);
+app.get("/api/v1/stores/:storeId/missions", isLogin, handleListStoreMissions);
+
+// 전역 오류 처리 미들웨어
 app.use(
   (err: any, req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {
