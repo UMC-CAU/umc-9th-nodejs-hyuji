@@ -22,6 +22,38 @@ export interface UserCreateData {
   preferences: number[];  
 }
 
+export interface UserUpdateData {
+  name?: string | null;
+  gender?: string | null;
+  birthday?: Date | null;
+  address?: string | null;
+  phone?: string | null;
+  areaId?: number | null;
+  preferences?: number[];
+}
+
+export const bodyToUserUpdate = (body: Partial<UserBody>): UserUpdateData => {
+  let birthday: Date | null = null;
+
+  if (body.birthday) {
+    const parsed = new Date(body.birthday);
+    if (!Number.isNaN(parsed.getTime())) {
+      birthday = parsed;
+    }
+  }
+
+  return {
+    name: body.name ?? null,
+    gender: body.gender ?? null,
+    birthday,
+    address: body.address ?? null,
+    phone: body.phone ?? null,
+    areaId: body.areaId ?? null,
+    preferences: body.preferences,
+  };
+};
+
+
 interface UserResponse {
   email: string | null;
   name: string | null;
